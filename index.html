@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07121d">
+  <meta name="description" content="비행기 창밖과 야간 플라이트 맵을 오가며 집중하는 조용한 공부 공간">
+  <title>Cabin Focus</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app" data-mode="window">
+    <section class="scene scene-window" aria-label="비행기 창밖 풍경">
+      <video id="destinationVideo" class="window-video" autoplay muted loop playsinline preload="metadata" poster="./assets/window-view.png"></video>
+      <div id="videoFallback" class="window-image" aria-hidden="true"></div>
+      <div id="videoLoading" class="video-loading"><span></span> DESTINATION VIEW LOADING</div>
+      <div class="window-shade" aria-hidden="true"></div>
+      <header class="window-top glass">
+        <div>
+          <p class="eyebrow">CABIN FOCUS · FL 370</p>
+          <p class="route-title"><span id="windowOrigin">서울</span> <span>→</span> <span id="windowDestination">파리</span></p>
+        </div>
+        <div class="time-block">
+          <span class="status-dot"></span>
+          <div>
+            <p class="eyebrow">LOCAL TIME</p>
+            <p id="clockWindow" class="clock">20:18</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="window-caption">
+        <p>37,000 FT</p>
+        <span></span>
+        <p>860 KM/H</p>
+      </div>
+      <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/paris-aerial-view-with-famous-landmarks-38835023/" target="_blank" rel="noopener">DESTINATION FOOTAGE · PEXELS</a>
+    </section>
+
+    <section class="scene scene-map" aria-label="기내 비행 지도">
+      <div class="map-grid" aria-hidden="true"></div>
+      <header class="map-header">
+        <div class="wordmark">
+          <span class="wingmark">CF</span>
+          <div>
+            <p class="eyebrow">CABIN FOCUS</p>
+            <p class="route-title">ICN <span>→</span> <span id="mapAirportCode">CDG</span></p>
+          </div>
+        </div>
+        <div class="map-clock">
+          <p id="destinationClockLabel" class="eyebrow">PARIS · LOCAL TIME</p>
+          <p id="clockMap" class="clock">20:18</p>
+        </div>
+      </header>
+
+      <div class="map-stage">
+        <div id="realMap" class="real-map" aria-label="실제 지형 기반 비행 지도"></div>
+        <svg class="world-map" viewBox="0 0 1200 560" role="img" aria-label="서울에서 파리로 향하는 비행 경로">
+          <defs>
+            <linearGradient id="ocean" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#10283a"/>
+              <stop offset="1" stop-color="#071520"/>
+            </linearGradient>
+            <linearGradient id="routeGlow" x1="0" x2="1">
+              <stop offset="0" stop-color="#66d5dc"/>
+              <stop offset="1" stop-color="#e7b66c"/>
+            </linearGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect width="1200" height="560" rx="30" fill="url(#ocean)"/>
+          <g class="latitude">
+            <path d="M0 115 Q600 165 1200 115"/><path d="M0 225 Q600 275 1200 225"/><path d="M0 340 Q600 390 1200 340"/><path d="M0 455 Q600 505 1200 455"/>
+            <path d="M170 0 Q240 280 170 560"/><path d="M410 0 Q455 280 410 560"/><path d="M650 0 Q625 280 650 560"/><path d="M890 0 Q820 280 890 560"/><path d="M1080 0 Q975 280 1080 560"/>
+          </g>
+          <g class="continents">
+            <path d="M76 87 L142 52 209 69 246 118 225 165 272 203 249 260 187 277 156 241 99 226 57 171Z"/>
+            <path d="M258 297 L321 282 364 323 351 385 320 430 289 498 247 475 255 405 224 349Z"/>
+            <path d="M472 116 L538 79 609 92 663 128 716 113 782 139 846 128 911 152 1000 142 1100 192 1070 252 1003 265 947 238 897 274 833 260 780 291 710 269 663 301 615 272 560 285 522 236 482 218 451 166Z"/>
+            <path d="M535 286 L613 281 662 326 647 404 604 471 552 443 517 369Z"/>
+            <path d="M992 365 L1054 342 1114 373 1102 428 1044 445 984 411Z"/>
+            <path d="M440 150 L462 127 482 145 470 180 446 177Z"/>
+          </g>
+          <g class="city-dots">
+            <circle cx="930" cy="213" r="5"/><text x="946" y="219">SEOUL</text>
+            <circle cx="531" cy="187" r="5"/><text x="500" y="174">PARIS</text>
+            <circle cx="773" cy="215" r="3"/><text x="784" y="204">ULAANBAATAR</text>
+            <circle cx="650" cy="214" r="3"/><text x="619" y="238">WARSAW</text>
+          </g>
+          <path id="routePath" class="route-glow" d="M930 213 Q735 60 531 187"/>
+          <path class="route-line" d="M930 213 Q735 60 531 187"/>
+          <g id="plane" class="plane" aria-hidden="true"><path d="M0-20 6-5 25 3 25 8 6 6 2 21-3 21-6 6-25 8-25 3-6-5Z"/></g>
+        </svg>
+
+        <div class="flight-card">
+          <p class="eyebrow">ESTIMATED ARRIVAL</p>
+          <p id="arrivalTime" class="arrival">11h 42m</p>
+          <div class="flight-progress"><span></span></div>
+          <div class="airport-row"><span>ICN</span><small>SIMULATED ROUTE</small><span id="cardAirportCode">CDG</span></div>
+        </div>
+      </div>
+
+      <footer class="telemetry">
+        <div><p class="eyebrow">ALTITUDE</p><strong>37,000 <small>FT</small></strong></div>
+        <div><p class="eyebrow">GROUND SPEED</p><strong>860 <small>KM/H</small></strong></div>
+        <div><p class="eyebrow">OUTSIDE</p><strong>−52 <small>°C</small></strong></div>
+      </footer>
+    </section>
+
+    <section class="destination-control glass" aria-label="여행지 선택">
+      <label for="destinationSelect">DESTINATION</label>
+      <select id="destinationSelect">
+        <option value="paris">Paris · France</option>
+        <option value="newyork">New York · USA</option>
+        <option value="tokyo">Tokyo · Japan</option>
+        <option value="reykjavik">Reykjavík · Iceland</option>
+        <option value="zurich">Zürich · Switzerland</option>
+      </select>
+    </section>
+
+    <nav class="mode-switch glass" aria-label="화면 모드">
+      <button class="mode-button active" data-set-mode="window" aria-pressed="true"><span class="mode-icon">◯</span> WINDOW</button>
+      <button class="mode-button" data-set-mode="map" aria-pressed="false"><span class="mode-icon">⌁</span> FLIGHT MAP</button>
+    </nav>
+    <button id="themeButton" class="theme-button glass" aria-label="밝은 테마로 변경">DARK CABIN</button>
+
+    <section class="focus-dock glass" aria-label="집중 도구">
+      <div class="timer-block">
+        <p class="eyebrow">FOCUS SESSION</p>
+        <button id="timerToggle" class="timer" aria-label="집중 타이머 시작"><span id="timerText">50:00</span><span id="timerState">START</span></button>
+      </div>
+      <div class="duration-options" aria-label="집중 시간 선택">
+        <button data-minutes="25">25</button>
+        <button data-minutes="50" class="active">50</button>
+        <button data-minutes="90">90</button>
+      </div>
+      <div class="dock-actions">
+        <button id="soundButton" class="icon-button" aria-pressed="false" aria-label="기내 소음 켜기">SOUND OFF</button>
+        <button id="installButton" class="icon-button hidden" aria-label="앱 설치">INSTALL</button>
+        <button id="fullscreenButton" class="icon-button" aria-label="전체 화면">FULLSCREEN</button>
+      </div>
+    </section>
+
+    <button id="hideUiButton" class="quiet-button" aria-label="화면의 조작 버튼 숨기기">HIDE UI</button>
+    <button id="showUiButton" class="show-button" aria-label="조작 버튼 보이기">SHOW UI</button>
+  </main>
+  <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
