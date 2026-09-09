@@ -45,6 +45,8 @@
     'uniform float uShake;',
     'uniform float uWingLift;',
     'uniform float uSteps;',
+    'uniform float uDirect;',
+    'uniform float uHdrScale;',
     '',
     'const float PI = 3.14159265;',
     'const float EARTH_R = 6371000.0;',
@@ -86,6 +88,23 @@
     '    a *= 0.5;',
     '  }',
     '  return v;',
+    '}',
+    '',
+    'float hash13(vec3 p) {',
+    '  p = fract(p * 0.1031);',
+    '  p += dot(p, p.zyx + 31.32);',
+    '  return fract((p.x + p.y) * p.z);',
+    '}',
+    '',
+    'float noise3(vec3 x) {',
+    '  vec3 i = floor(x);',
+    '  vec3 f = fract(x);',
+    '  f = f * f * (3.0 - 2.0 * f);',
+    '  float a = mix(hash13(i + vec3(0.0, 0.0, 0.0)), hash13(i + vec3(1.0, 0.0, 0.0)), f.x);',
+    '  float b = mix(hash13(i + vec3(0.0, 1.0, 0.0)), hash13(i + vec3(1.0, 1.0, 0.0)), f.x);',
+    '  float c = mix(hash13(i + vec3(0.0, 0.0, 1.0)), hash13(i + vec3(1.0, 0.0, 1.0)), f.x);',
+    '  float d = mix(hash13(i + vec3(0.0, 1.0, 1.0)), hash13(i + vec3(1.0, 1.0, 1.0)), f.x);',
+    '  return mix(mix(a, b, f.y), mix(c, d, f.y), f.z);',
     '}',
     '',
     '/* ---- light and sky ------------------------------------------------- */',
@@ -130,11 +149,11 @@
     '  float mu = dot(rd, uSunDir);',
     '  float daylight = 1.0 - uNight;',
     '  /* Mie forward scatter: the bright wash around the sun. */',
-    '  col += sunLight() * henyey(mu, 0.72) * 0.55 * daylight;',
+    '  col += sunLight() * henyey(mu, 0.80) * 0.13 * daylight;',
     '  col += mix(vec3(1.0, 0.95, 0.86), sunLight() * 0.4, 0.5) * pow(max(mu, 0.0), 2200.0) * 9.0 * daylight;',
     '  /* Warm band hugging the horizon on the sun side. */',
     '  float horizonBand = pow(1.0 - up, 8.0) * smoothstep(-0.2, 0.6, mu);',
-    '  col += horizonTint() * horizonBand * 0.35 * daylight;',
+    '  col += horizonTint() * horizonBand * 0.20 * daylight;',
     '',
     '  vec2 sph = vec2(atan(rd.z, rd.x), asin(clamp(rd.y, -1.0, 1.0)));',
     '  float stars = pow(hash21(floor(sph * 240.0)), 76.0) * 2.2;',
@@ -167,15 +186,25 @@
     '  return clamp(d * profile * 1.7, 0.0, 1.0);',
     '}',
     '',
-    'float cloudDensity(vec3 p) {',
+    '/* Carve the blocky base shape back with genuinely volumetric noise. Doing',
+    '   this in 3D rather than 2D is what stops cumulus reading as cotton wool:',
+    '   the erosion differs at every height, so edges break up in all three axes.',
+    '   Gated by `detail` because past a few tens of kilometres the wisps are',
+    '   smaller than a pixel and only cost fillrate. */',
+    'float cloudDensity(vec3 p, float detail) {',
     '  float d = cloudShape(p);',
     '  if (d <= 0.0) return 0.0;',
-    '  float base = cloudBaseY();',
-    '  float top = cloudTopY();',
-    '  float h = clamp((p.y - base) / max(top - base, 1.0), 0.0, 1.0);',
-    '  /* Erode the edges so silhouettes are ragged instead of blobby. */',
-    '  float erode = noise2(cloudUV(p, h) * 9.0 + h * 3.0);',
-    '  d -= (1.0 - erode) * 0.30 * (1.0 - d);',
+    '  if (detail < 0.02) return d;',
+    '  vec3 drift = vec3(uTime * 1.2, 0.0, uTravel * 0.62 + uTime * 0.5);',
+    '  vec3 w = (p + drift) * 0.00085;',
+    '  float coarse = noise3(w);',
+    '  float fine = noise3(w * 3.7 + vec3(11.3, 4.1, 7.7));',
+    '  float wisp = noise3(w * 11.0 - vec3(3.1, 8.8, 2.4));',
+    '  float erosion = coarse * 0.55 + fine * 0.31 + wisp * 0.14;',
+    '  /* Erode hardest where the base shape is already thin, so cores stay solid',
+    '     and only the silhouette frays. */',
+    '  float rim = 1.0 - smoothstep(0.0, 0.55, d);',
+    '  d -= (1.0 - erosion) * (0.22 + 0.42 * rim) * detail;',
     '  return clamp(d, 0.0, 1.0);',
     '}',
     '',
@@ -213,7 +242,7 @@
     '  for (int i = 0; i < 40; i++) {',
     '    if (float(i) >= steps || trans < 0.015) break;',
     '    vec3 p = ro + rd * t;',
-    '    float d = cloudDensity(p);',
+    '    float d = cloudDensity(p, exp(-t / 26000.0));',
     '    if (d > 0.004) {',
     '      float toSun = cloudShape(p + uSunDir * 320.0) + cloudShape(p + uSunDir * 900.0) * 0.55;',
     '      float lightT = exp(-toSun * 2.6);',
@@ -350,7 +379,9 @@
     '  float ndl = max(dot(n, uSunDir), 0.0);',
     '  float shadow = cloudShadow(p);',
     '  vec3 diffuse = sunLight() * ndl * shadow * 0.62;',
-    '  vec3 sky = ambient * (0.30 + 0.24 * n.y);',
+    '  /* Skylight has to carry the ground when the sun is near the horizon,',
+    '     otherwise dusk turns the whole landscape into a black slab. */',
+    '  vec3 sky = ambient * (0.46 + 0.30 * n.y);',
     '  vec3 col = albedo * (diffuse + sky);',
     '',
     '  /* Water is shaded separately: it reflects sky, not soil. */',
@@ -371,7 +402,7 @@
     '  float airportWeight;',
     '  vec3 apron = airportSurface(p, t, airportWeight);',
     '  if (airportWeight > 0.002) {',
-    '    vec3 apronLit = apron * (sunLight() * shadow * max(uSunDir.y, 0.0) * 0.62 + ambient * 0.42);',
+    '    vec3 apronLit = apron * (sunLight() * shadow * max(uSunDir.y, 0.0) * 0.62 + ambient * 0.60);',
     '    col = mix(col, apronLit, airportWeight);',
     '  }',
     '  return col;',
@@ -479,18 +510,22 @@
     '    col = mix(col, vec3(2.6, 0.16, 0.14), navLight * (0.30 + 0.70 * step(0.5, fract(uTime * 0.7))));',
     '  }',
     '',
-    '  /* ---- post ---- */',
-    '  col *= 1.05;',
-    '  col = aces(col);',
-    '  float r = length(frag * vec2(0.84, 1.0));',
-    '  col *= 1.0 - smoothstep(0.72, 1.36, r) * 0.38;',
     '  float glare = pow(clamp(1.0 - length(frag - vec2(0.34, 0.26)) * 1.5, 0.0, 1.0), 3.0);',
     '  col += horizonTint() * glare * 0.030 * (1.0 - uNight);',
-    '  /* Dither before the 8-bit write, or the sky bands. */',
-    '  float dither = (hash21(gl_FragCoord.xy + fract(uTime) * 57.0) - 0.5) / 255.0;',
-    '  col += dither * 1.6;',
-    '  col += (hash21(gl_FragCoord.xy * 1.7 + fract(uTime) * 13.0) - 0.5) * 0.008;',
-    '  gl_FragColor = vec4(max(col, 0.0), 1.0);',
+    '  col = max(col, 0.0);',
+    '',
+    '  if (uDirect > 0.5) {',
+    '    /* No framebuffer path on this device: tonemap here and skip bloom. */',
+    '    col = aces(col * 1.05);',
+    '    float r = length(frag * vec2(0.84, 1.0));',
+    '    col *= 1.0 - smoothstep(0.72, 1.36, r) * 0.38;',
+    '    col += (hash21(gl_FragCoord.xy + fract(uTime) * 57.0) - 0.5) * 1.6 / 255.0;',
+    '    gl_FragColor = vec4(col, 1.0);',
+    '    return;',
+    '  }',
+    '  /* Linear light for the bloom chain. uHdrScale packs values above 1.0 into',
+    '     an 8-bit target when half-float render targets are unavailable. */',
+    '  gl_FragColor = vec4(col / uHdrScale, 1.0);',
     '}'
   ].join('\n');
 
@@ -498,8 +533,88 @@
     'uRes', 'uTime', 'uAlt', 'uPitch', 'uRoll', 'uYaw', 'uTravel',
     'uSunDir', 'uSunElev', 'uNight', 'uGroundA', 'uGroundB', 'uWaterCol',
     'uWater', 'uSnow', 'uUrban', 'uCloudCover', 'uHighCloud', 'uDeckY',
-    'uDeckThick', 'uGroundFade', 'uShake', 'uWingLift', 'uSteps'
+    'uDeckThick', 'uGroundFade', 'uShake', 'uWingLift', 'uSteps',
+    'uDirect', 'uHdrScale'
   ];
+
+  const POST_VERTEX = [
+    'attribute vec2 aPos;',
+    'varying vec2 vUv;',
+    'void main() {',
+    '  vUv = aPos * 0.5 + 0.5;',
+    '  gl_Position = vec4(aPos, 0.0, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* Bright pass: box-downsample the scene by four and keep only what is above
+     the bloom threshold, with a soft knee so edges do not pop. */
+  const EXTRACT_FRAGMENT = [
+    'precision mediump float;',
+    'varying vec2 vUv;',
+    'uniform sampler2D uScene;',
+    'uniform vec2 uTexel;',
+    'uniform float uHdrScale;',
+    'uniform float uThreshold;',
+    'vec3 tap(vec2 uv) { return texture2D(uScene, uv).rgb * uHdrScale; }',
+    'void main() {',
+    '  vec3 c = tap(vUv + uTexel * vec2(-1.0, -1.0));',
+    '  c += tap(vUv + uTexel * vec2(1.0, -1.0));',
+    '  c += tap(vUv + uTexel * vec2(-1.0, 1.0));',
+    '  c += tap(vUv + uTexel * vec2(1.0, 1.0));',
+    '  c *= 0.25;',
+    '  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));',
+    '  float knee = smoothstep(uThreshold, uThreshold + 0.7, lum);',
+    '  gl_FragColor = vec4(c * knee * 0.25, 1.0);',
+    '}'
+  ].join('\n');
+
+  const BLUR_FRAGMENT = [
+    'precision mediump float;',
+    'varying vec2 vUv;',
+    'uniform sampler2D uSource;',
+    'uniform vec2 uStep;',
+    'void main() {',
+    '  vec3 c = texture2D(uSource, vUv).rgb * 0.227027;',
+    '  c += texture2D(uSource, vUv + uStep * 1.3846).rgb * 0.316216;',
+    '  c += texture2D(uSource, vUv - uStep * 1.3846).rgb * 0.316216;',
+    '  c += texture2D(uSource, vUv + uStep * 3.2308).rgb * 0.070270;',
+    '  c += texture2D(uSource, vUv - uStep * 3.2308).rgb * 0.070270;',
+    '  gl_FragColor = vec4(c, 1.0);',
+    '}'
+  ].join('\n');
+
+  const COMPOSITE_FRAGMENT = [
+    'precision mediump float;',
+    'varying vec2 vUv;',
+    'uniform sampler2D uScene;',
+    'uniform sampler2D uBloom;',
+    'uniform vec2 uAspect;',
+    'uniform float uHdrScale;',
+    'uniform float uBloomStrength;',
+    'uniform float uTime;',
+    'float hash21(vec2 p) {',
+    '  p = fract(p * vec2(123.34, 456.21));',
+    '  p += dot(p, p + 45.32);',
+    '  return fract(p.x * p.y);',
+    '}',
+    'vec3 aces(vec3 x) {',
+    '  const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;',
+    '  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);',
+    '}',
+    'void main() {',
+    '  vec3 scene = texture2D(uScene, vUv).rgb * uHdrScale;',
+    '  vec3 bloom = texture2D(uBloom, vUv).rgb;',
+    '  vec3 col = scene + bloom * uBloomStrength;',
+    '  col = aces(col * 1.05);',
+    '  vec2 centred = (vUv - 0.5) * uAspect;',
+    '  float r = length(centred * vec2(0.84, 1.0));',
+    '  col *= 1.0 - smoothstep(0.72, 1.36, r) * 0.38;',
+    '  /* Dither before the 8-bit write, or the sky bands. */',
+    '  col += (hash21(gl_FragCoord.xy + fract(uTime) * 57.0) - 0.5) * 1.6 / 255.0;',
+    '  col += (hash21(gl_FragCoord.xy * 1.7 + fract(uTime) * 13.0) - 0.5) * 0.008;',
+    '  gl_FragColor = vec4(max(col, 0.0), 1.0);',
+    '}'
+  ].join('\n');
 
   function compile(gl, type, source) {
     const shader = gl.createShader(type);
@@ -513,35 +628,125 @@
     return shader;
   }
 
+  function link(gl, vertexSource, fragmentSource) {
+    const program = gl.createProgram();
+    gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource));
+    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentSource));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error('program link failed: ' + gl.getProgramInfoLog(program));
+    }
+    return program;
+  }
+
+  function makeTarget(gl, width, height, type, filter) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, type, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (!complete) {
+      gl.deleteTexture(texture);
+      gl.deleteFramebuffer(framebuffer);
+      return null;
+    }
+    return { texture: texture, framebuffer: framebuffer, width: width, height: height };
+  }
+
   function create(canvas) {
     const options = { antialias: false, alpha: false, depth: false, powerPreference: 'high-performance' };
     const gl = canvas.getContext('webgl', options) || canvas.getContext('experimental-webgl', options);
     if (!gl) return null;
 
-    let program;
+    let sceneProgram, extractProgram, blurProgram, compositeProgram;
     try {
-      program = gl.createProgram();
-      gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
-      gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER));
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error('program link failed: ' + gl.getProgramInfoLog(program));
-      }
+      sceneProgram = link(gl, VERTEX_SHADER, FRAGMENT_SHADER);
+      extractProgram = link(gl, POST_VERTEX, EXTRACT_FRAGMENT);
+      blurProgram = link(gl, POST_VERTEX, BLUR_FRAGMENT);
+      compositeProgram = link(gl, POST_VERTEX, COMPOSITE_FRAGMENT);
     } catch (error) {
       console.warn('[skyview]', error.message);
       return null;
     }
 
-    gl.useProgram(program);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const aPos = gl.getAttribLocation(program, 'aPos');
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    function bindGeometry(program) {
+      gl.useProgram(program);
+      const aPos = gl.getAttribLocation(program, 'aPos');
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    }
 
     const uniforms = {};
-    UNIFORM_NAMES.forEach(name => { uniforms[name] = gl.getUniformLocation(program, name); });
+    gl.useProgram(sceneProgram);
+    UNIFORM_NAMES.forEach(name => { uniforms[name] = gl.getUniformLocation(sceneProgram, name); });
+    const extractU = {
+      scene: gl.getUniformLocation(extractProgram, 'uScene'),
+      texel: gl.getUniformLocation(extractProgram, 'uTexel'),
+      hdr: gl.getUniformLocation(extractProgram, 'uHdrScale'),
+      threshold: gl.getUniformLocation(extractProgram, 'uThreshold')
+    };
+    const blurU = {
+      source: gl.getUniformLocation(blurProgram, 'uSource'),
+      step: gl.getUniformLocation(blurProgram, 'uStep')
+    };
+    const compositeU = {
+      scene: gl.getUniformLocation(compositeProgram, 'uScene'),
+      bloom: gl.getUniformLocation(compositeProgram, 'uBloom'),
+      aspect: gl.getUniformLocation(compositeProgram, 'uAspect'),
+      hdr: gl.getUniformLocation(compositeProgram, 'uHdrScale'),
+      strength: gl.getUniformLocation(compositeProgram, 'uBloomStrength'),
+      time: gl.getUniformLocation(compositeProgram, 'uTime')
+    };
+
+    /* Half-float scene targets keep the sun and cloud highlights above 1.0 so
+       the bright pass has something real to work with. Where they are missing,
+       fall back to 8-bit with the range packed down by uHdrScale. */
+    const halfFloat = gl.getExtension('OES_texture_half_float');
+    const sceneType = halfFloat ? halfFloat.HALF_FLOAT_OES : gl.UNSIGNED_BYTE;
+    const hdrScale = halfFloat ? 1.0 : 6.0;
+
+    let sceneTarget = null;
+    let bloomA = null;
+    let bloomB = null;
+    let postAvailable = true;
+
+    function releaseTargets() {
+      [sceneTarget, bloomA, bloomB].forEach(function (target) {
+        if (!target) return;
+        gl.deleteTexture(target.texture);
+        gl.deleteFramebuffer(target.framebuffer);
+      });
+      sceneTarget = null;
+      bloomA = null;
+      bloomB = null;
+    }
+
+    function ensureTargets(width, height) {
+      if (sceneTarget && sceneTarget.width === width && sceneTarget.height === height) return true;
+      releaseTargets();
+      const bw = Math.max(1, width >> 2);
+      const bh = Math.max(1, height >> 2);
+      sceneTarget = makeTarget(gl, width, height, sceneType, gl.NEAREST);
+      bloomA = makeTarget(gl, bw, bh, gl.UNSIGNED_BYTE, gl.LINEAR);
+      bloomB = makeTarget(gl, bw, bh, gl.UNSIGNED_BYTE, gl.LINEAR);
+      if (!sceneTarget || !bloomA || !bloomB) {
+        releaseTargets();
+        postAvailable = false;
+        return false;
+      }
+      return true;
+    }
 
     const state = {
       alt: 0, pitch: 0, roll: 0, yaw: -1.35, travel: 0, speed: 0,
@@ -557,7 +762,7 @@
     /* Quality auto-tune. Volumetric clouds are the expensive part, so both the
        internal resolution and the march step count back off together until the
        frame budget is met, then creep back up. */
-    const quality = { scale: 0.85, steps: 30, frameMs: 16, locked: false };
+    const quality = { scale: 0.85, steps: 30, frameMs: 16, locked: false, bloom: 0.70 };
     const MAX_DPR = 1.6;
 
     let running = false;
@@ -587,19 +792,11 @@
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
-        gl.viewport(0, 0, width, height);
       }
     }
 
-    function frame(now) {
-      if (!running) return;
-      frameId = requestAnimationFrame(frame);
-      const delta = Math.min((now - lastFrame) / 1000, 0.1);
-      tuneQuality(now - lastFrame);
-      lastFrame = now;
-      state.travel += state.speed * delta;
-      resize();
-
+    function drawScene(now, direct) {
+      bindGeometry(sceneProgram);
       gl.uniform2f(uniforms.uRes, canvas.width, canvas.height);
       gl.uniform1f(uniforms.uTime, (now - startedAt) / 1000);
       gl.uniform1f(uniforms.uAlt, state.alt);
@@ -624,7 +821,74 @@
       gl.uniform1f(uniforms.uShake, state.shake);
       gl.uniform1f(uniforms.uWingLift, state.wingLift);
       gl.uniform1f(uniforms.uSteps, Math.round(quality.steps));
+      gl.uniform1f(uniforms.uDirect, direct ? 1 : 0);
+      gl.uniform1f(uniforms.uHdrScale, hdrScale);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
 
+    function blurInto(target, source, dx, dy) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+      gl.viewport(0, 0, target.width, target.height);
+      bindGeometry(blurProgram);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, source.texture);
+      gl.uniform1i(blurU.source, 0);
+      gl.uniform2f(blurU.step, dx / source.width, dy / source.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function frame(now) {
+      if (!running) return;
+      frameId = requestAnimationFrame(frame);
+      const delta = Math.min((now - lastFrame) / 1000, 0.1);
+      tuneQuality(now - lastFrame);
+      lastFrame = now;
+      state.travel += state.speed * delta;
+      resize();
+
+      const width = canvas.width;
+      const height = canvas.height;
+      if (!postAvailable || !ensureTargets(width, height)) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, width, height);
+        drawScene(now, true);
+        return;
+      }
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, sceneTarget.framebuffer);
+      gl.viewport(0, 0, width, height);
+      drawScene(now, false);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomA.framebuffer);
+      gl.viewport(0, 0, bloomA.width, bloomA.height);
+      bindGeometry(extractProgram);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, sceneTarget.texture);
+      gl.uniform1i(extractU.scene, 0);
+      gl.uniform2f(extractU.texel, 1 / width, 1 / height);
+      gl.uniform1f(extractU.hdr, hdrScale);
+      gl.uniform1f(extractU.threshold, 1.25);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      /* Two widening ping-pong passes give a soft halo without a mip chain. */
+      blurInto(bloomB, bloomA, 1, 0);
+      blurInto(bloomA, bloomB, 0, 1);
+      blurInto(bloomB, bloomA, 2, 0);
+      blurInto(bloomA, bloomB, 0, 2);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, width, height);
+      bindGeometry(compositeProgram);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, sceneTarget.texture);
+      gl.uniform1i(compositeU.scene, 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, bloomA.texture);
+      gl.uniform1i(compositeU.bloom, 1);
+      gl.uniform2f(compositeU.aspect, width / height, 1);
+      gl.uniform1f(compositeU.hdr, hdrScale);
+      gl.uniform1f(compositeU.strength, quality.bloom);
+      gl.uniform1f(compositeU.time, (now - startedAt) / 1000);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
@@ -635,7 +899,7 @@
     }
 
     return {
-      start() {
+      start: function () {
         if (running) return;
         running = true;
         /* Give the resumed view a fresh budget rather than one measured while
@@ -644,28 +908,29 @@
         lastFrame = performance.now();
         frameId = requestAnimationFrame(frame);
       },
-      stop() {
+      stop: function () {
         running = false;
         cancelAnimationFrame(frameId);
       },
-      isRunning() { return running; },
-      resetTravel() { state.travel = 0; },
-      setQuality(scale, steps) {
+      isRunning: function () { return running; },
+      resetTravel: function () { state.travel = 0; },
+      setQuality: function (scale, steps) {
         quality.scale = scale;
         quality.steps = steps;
         quality.locked = true;
       },
-      quality,
-      apply(patch) {
-        Object.keys(patch).forEach(key => {
+      hasBloom: function () { return postAvailable; },
+      quality: quality,
+      apply: function (patch) {
+        Object.keys(patch).forEach(function (key) {
           const value = patch[key];
           if (Array.isArray(value) && state[key] instanceof Float32Array) setVec(state[key], value);
           else state[key] = value;
         });
       },
-      state
+      state: state
     };
   }
 
-  global.SkyView = { create };
+  global.SkyView = { create: create };
 })(window);
