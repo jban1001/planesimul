@@ -176,7 +176,7 @@ function updateJourneyStage(progress) {
   }
   /* Derive the phase here rather than reading what the renderer last wrote:
      a throttled tab stops the render loop but not this clock. */
-  const phase = Journey.frameState(progress,currentRoute.biome,currentRoute.sun,0).phase;
+  const phase = Journey.frameState(progress,currentRoute.biome,currentRoute.sun,0,currentRoute).phase;
   flightStageLabel.textContent = `${Journey.phaseLabel(phase)} · ${stageLocation(phase)}`;
 }
 function updateFlightProgress() {
@@ -226,7 +226,7 @@ function renderJourneyFrame(token) {
   renderFrameId = requestAnimationFrame(() => renderJourneyFrame(token));
   const elapsed = Math.max(0,Date.now() - journeyStartedAt);
   const progress = flightDurationMs ? Math.min(1,elapsed / flightDurationMs) : 0;
-  const frame = Journey.frameState(progress,currentRoute.biome,currentRoute.sun,elapsed / 1000);
+  const frame = Journey.frameState(progress,currentRoute.biome,currentRoute.sun,elapsed / 1000,currentRoute);
   skyView.apply(frame.render);
   if (frame.phase !== currentFlightPhase) {
     currentFlightPhase = frame.phase;
@@ -255,7 +255,7 @@ function startCinematicJourney(key) {
     return;
   }
   cinematicActive = true;
-  currentRoute = Journey.route('seoul',ORIGIN,key,destination);
+  currentRoute = Journey.route('seoul',ORIGIN,key,destination,journeyDurationFor(destination) / 1000);
   currentFlightPhase = '';
   windowScene.classList.remove('video-error','video-switching');
   windowScene.classList.add('video-ready','rendered-view');
