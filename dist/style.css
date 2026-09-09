@@ -1,0 +1,160 @@
+:root { color-scheme: dark; --ink:#eff5f4; --muted:#98aeb5; --line:rgba(206,229,229,.16); --glass:rgba(7,17,26,.6); --aqua:#66d5dc; --amber:#e7b66c; }
+* { box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#06101a; }
+body { font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink); }
+button { font:inherit; color:inherit; }
+.app { position:relative; width:100%; height:100%; min-height:560px; overflow:hidden; background:#06101a; }
+.scene { position:absolute; inset:0; transition:opacity .9s ease, transform 1.2s cubic-bezier(.2,.7,.2,1); }
+.scene-window { opacity:1; transform:scale(1); }
+.scene-map { opacity:0; transform:scale(1.025); pointer-events:none; background:radial-gradient(circle at 62% 34%,#17364a 0,#091925 37%,#050c13 78%); }
+.app[data-mode="map"] .scene-window { opacity:0; transform:scale(1.02); pointer-events:none; }
+.app[data-mode="map"] .scene-map { opacity:1; transform:scale(1); pointer-events:auto; }
+.window-image { position:absolute; inset:-3%; background:url('./assets/window-view.png') center/cover no-repeat; animation:drift 32s ease-in-out infinite alternate; }
+.window-shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(2,9,16,.5),transparent 25%,transparent 63%,rgba(2,8,14,.68)),linear-gradient(90deg,rgba(2,7,12,.25),transparent 30%); }
+@keyframes drift { from { transform:scale(1.02) translate3d(-.5%,0,0); } to { transform:scale(1.07) translate3d(1.1%,-.7%,0); } }
+.glass { background:var(--glass); border:1px solid rgba(229,243,241,.14); box-shadow:0 18px 50px rgba(0,0,0,.2); backdrop-filter:blur(22px) saturate(115%); -webkit-backdrop-filter:blur(22px) saturate(115%); }
+.window-top { position:absolute; top:clamp(22px,4vw,56px); left:clamp(22px,4vw,60px); right:clamp(22px,4vw,60px); display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-radius:18px; }
+.eyebrow { margin:0 0 5px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.72rem; letter-spacing:.17em; color:var(--muted); }
+.route-title { margin:0; font-size:clamp(1rem,2vw,1.35rem); font-weight:500; letter-spacing:.02em; }
+.route-title span { color:var(--aqua); margin:0 .35em; }
+.time-block,.wordmark { display:flex; align-items:center; gap:13px; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--aqua); box-shadow:0 0 16px var(--aqua); }
+.clock { margin:0; font-family:Consolas,"SFMono-Regular",monospace; font-size:1.1rem; }
+.window-caption { position:absolute; left:clamp(26px,5vw,72px); bottom:150px; display:flex; align-items:center; gap:12px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.76rem; letter-spacing:.12em; color:rgba(241,247,246,.72); }
+.window-caption span { width:28px; height:1px; background:rgba(255,255,255,.34); }
+.map-grid { position:absolute; inset:0; opacity:.35; background-image:linear-gradient(rgba(145,193,201,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(145,193,201,.05) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 95%); }
+.map-header { position:absolute; z-index:3; top:clamp(20px,3vw,44px); left:clamp(24px,4.5vw,72px); right:clamp(24px,4.5vw,72px); display:flex; justify-content:space-between; align-items:center; }
+.wingmark { display:grid; place-items:center; width:45px; height:45px; border:1px solid rgba(102,213,220,.48); border-radius:50%; font-family:Consolas,"SFMono-Regular",monospace; font-size:.76rem; color:var(--aqua); }
+.map-clock { text-align:right; }
+.map-stage { position:absolute; top:108px; left:4.5vw; right:4.5vw; bottom:132px; display:grid; place-items:center; }
+.world-map { width:100%; height:100%; max-height:620px; filter:drop-shadow(0 32px 50px rgba(0,0,0,.25)); }
+.latitude path { fill:none; stroke:#8fc4cb; stroke-opacity:.08; stroke-width:1; }
+.continents path { fill:#18394a; stroke:#5a8993; stroke-opacity:.35; stroke-width:1.2; }
+.city-dots circle { fill:var(--amber); filter:url(#glow); }
+.city-dots text { fill:#9db1b7; font-family:Consolas,"SFMono-Regular",monospace; font-size:12px; letter-spacing:1.5px; }
+.route-glow,.route-line { fill:none; stroke:url(#routeGlow); stroke-linecap:round; }
+.route-glow { opacity:.24; stroke-width:10; filter:url(#glow); }
+.route-line { stroke-width:2.4; stroke-dasharray:8 9; animation:dash 18s linear infinite; }
+@keyframes dash { to { stroke-dashoffset:-340; } }
+.plane path { fill:#f3d49d; filter:url(#glow); transform:scale(.72); }
+.flight-card { position:absolute; left:4%; top:50%; transform:translateY(-50%); width:190px; padding:18px; border-left:1px solid rgba(231,182,108,.6); background:linear-gradient(90deg,rgba(6,17,25,.8),transparent); }
+.arrival { margin:4px 0 18px; font-family:Consolas,"SFMono-Regular",monospace; font-size:1.55rem; }
+.flight-progress { height:2px; background:rgba(255,255,255,.13); }
+.flight-progress span { display:block; width:42%; height:100%; background:linear-gradient(90deg,var(--aqua),var(--amber)); box-shadow:0 0 9px rgba(102,213,220,.5); }
+.airport-row { display:flex; justify-content:space-between; margin-top:9px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.67rem; color:#abc0c4; }
+.airport-row small { color:#6d8790; font-size:.55rem; }
+.telemetry { position:absolute; left:4.5vw; bottom:95px; display:flex; gap:clamp(25px,5vw,74px); }
+.telemetry strong { font-family:Consolas,"SFMono-Regular",monospace; font-size:1rem; font-weight:400; }
+.telemetry small { color:#758e97; font-size:.65rem; }
+.mode-switch { position:absolute; z-index:10; top:clamp(22px,4vw,56px); left:50%; transform:translateX(-50%); display:flex; padding:5px; border-radius:999px; }
+.mode-button { min-width:132px; padding:10px 15px; border:0; border-radius:999px; background:transparent; color:#99abb0; font-family:Consolas,"SFMono-Regular",monospace; font-size:.7rem; letter-spacing:.08em; cursor:pointer; transition:.25s; }
+.mode-button.active { background:rgba(218,236,234,.12); color:#f4f8f7; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+.mode-icon { margin-right:7px; color:var(--aqua); }
+.focus-dock { position:absolute; z-index:10; left:50%; bottom:clamp(18px,3vw,40px); transform:translateX(-50%); width:min(820px,calc(100% - 44px)); min-height:78px; display:flex; align-items:center; gap:22px; padding:12px 14px 12px 20px; border-radius:22px; transition:opacity .4s,transform .4s; }
+.timer-block { min-width:150px; }
+.timer { display:flex; align-items:baseline; gap:10px; padding:0; border:0; background:none; cursor:pointer; }
+#timerText { font-family:Consolas,"SFMono-Regular",monospace; font-size:1.38rem; }
+#timerState { font-family:Consolas,"SFMono-Regular",monospace; font-size:.6rem; letter-spacing:.12em; color:var(--aqua); }
+.duration-options { display:flex; gap:4px; padding-left:18px; border-left:1px solid var(--line); }
+.duration-options button { width:38px; height:34px; border:0; border-radius:10px; background:transparent; color:#7f969c; font-family:Consolas,"SFMono-Regular",monospace; font-size:.7rem; cursor:pointer; }
+.duration-options button.active { color:#eef6f5; background:rgba(255,255,255,.09); }
+.dock-actions { display:flex; gap:7px; margin-left:auto; }
+.icon-button,.quiet-button,.show-button { border:1px solid rgba(218,236,234,.14); background:rgba(9,19,28,.5); border-radius:12px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.62rem; letter-spacing:.08em; cursor:pointer; }
+.icon-button { height:42px; padding:0 14px; color:#adbec2; }
+.icon-button[aria-pressed="true"] { color:var(--aqua); border-color:rgba(102,213,220,.35); }
+.quiet-button { position:absolute; z-index:11; right:clamp(22px,3vw,44px); bottom:clamp(27px,3.4vw,49px); padding:10px 12px; color:#91a5aa; }
+.show-button { position:absolute; z-index:11; right:22px; bottom:22px; padding:11px 14px; color:#d6e4e4; opacity:0; pointer-events:none; }
+.hidden { display:none !important; }
+.app.ui-hidden .window-top,.app.ui-hidden .mode-switch,.app.ui-hidden .focus-dock,.app.ui-hidden .quiet-button,.app.ui-hidden .map-header,.app.ui-hidden .telemetry { opacity:0; pointer-events:none; }
+.app.ui-hidden .show-button { opacity:1; pointer-events:auto; }
+
+@media (max-width:760px) {
+  .app { min-height:520px; }
+  .window-top { align-items:flex-start; }
+  .window-top .time-block { display:none; }
+  .mode-switch { top:auto; bottom:118px; }
+  .mode-button { min-width:118px; padding:10px 12px; }
+  .focus-dock { width:calc(100% - 24px); bottom:12px; min-height:92px; gap:10px; padding:12px 14px; }
+  .timer-block { min-width:128px; }
+  .duration-options { display:none; }
+  .dock-actions { gap:4px; }
+  .icon-button { padding:0 9px; font-size:.55rem; }
+  .quiet-button { right:14px; bottom:126px; }
+  .window-caption { bottom:175px; }
+  .map-stage { left:0; right:0; top:90px; bottom:178px; }
+  .world-map { width:145%; max-width:none; }
+  .flight-card { left:6%; top:auto; bottom:2%; transform:none; width:170px; }
+  .telemetry { display:none; }
+  .map-header { left:18px; right:18px; }
+}
+@media (max-width:470px) {
+  .focus-dock { justify-content:space-between; }
+  .dock-actions .icon-button { width:42px; padding:0; overflow:hidden; color:transparent; position:relative; }
+  .dock-actions .icon-button::after { position:absolute; inset:0; display:grid; place-items:center; color:#b9c9cc; font-size:.85rem; }
+  #soundButton::after { content:'◉'; } #installButton::after { content:'↓'; } #fullscreenButton::after { content:'⛶'; }
+  .mode-switch { width:calc(100% - 28px); }
+  .mode-button { flex:1; min-width:0; }
+  .map-clock { display:none; }
+}
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; } }
+
+/* Destination video + live map upgrade */
+.window-video { position:absolute; inset:-1%; width:102%; height:102%; object-fit:cover; opacity:0; transition:opacity 1.2s ease,filter .5s ease; }
+.window-image { transition:opacity 1.2s ease,filter .5s ease; }
+.scene-window.video-ready .window-video { opacity:1; }
+.scene-window.video-ready .window-image { opacity:0; }
+.video-loading { position:absolute; z-index:2; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:10px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.62rem; letter-spacing:.14em; color:rgba(239,246,245,.75); transition:opacity .35s; }
+.video-loading span { width:7px; height:7px; border-radius:50%; background:var(--aqua); box-shadow:0 0 18px var(--aqua); animation:pulse 1.2s ease-in-out infinite; }
+.scene-window.video-ready .video-loading,.scene-window.video-error .video-loading { opacity:0; pointer-events:none; }
+@keyframes pulse { 50% { opacity:.25; transform:scale(.7); } }
+.footage-credit { position:absolute; right:clamp(24px,4vw,60px); bottom:140px; z-index:3; color:rgba(235,244,243,.55); text-decoration:none; font-family:Consolas,"SFMono-Regular",monospace; font-size:.58rem; letter-spacing:.1em; }
+.destination-control { position:absolute; z-index:15; top:clamp(22px,4vw,56px); left:clamp(22px,4vw,60px); display:flex; align-items:center; gap:12px; height:52px; padding:0 14px 0 17px; border-radius:15px; }
+.destination-control label { font-family:Consolas,"SFMono-Regular",monospace; font-size:.6rem; letter-spacing:.15em; color:var(--muted); }
+.destination-control select { max-width:190px; border:0; outline:0; background:transparent; color:var(--ink); font-size:.88rem; font-weight:600; cursor:pointer; }
+.destination-control select option { color:#10202a; background:#f4f7f5; }
+.theme-button { position:absolute; z-index:15; top:clamp(22px,4vw,56px); right:clamp(22px,4vw,60px); height:52px; padding:0 17px; border-radius:15px; color:var(--muted); font-family:Consolas,"SFMono-Regular",monospace; font-size:.62rem; letter-spacing:.09em; cursor:pointer; }
+.window-top { top:clamp(92px,10vw,132px); }
+.map-header { top:clamp(92px,10vw,132px); }
+.map-stage { top:154px; }
+.real-map { position:absolute; inset:0; overflow:hidden; border-radius:30px; opacity:0; transition:opacity .7s; box-shadow:0 30px 80px rgba(0,0,0,.24); }
+.map-stage.map-ready .real-map { opacity:1; }
+.map-stage.map-ready .world-map { opacity:0; pointer-events:none; }
+.real-map::after { content:""; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 0 1px rgba(204,230,230,.12),inset 0 -100px 100px rgba(2,9,14,.2); border-radius:30px; }
+.maplibregl-map { font-family:"Segoe UI",system-ui,sans-serif; }
+.maplibregl-ctrl-logo { opacity:.55; }
+.maplibregl-ctrl-attrib { background:rgba(5,14,21,.58) !important; color:#9db0b5; font-size:9px; }
+.maplibregl-ctrl-attrib a { color:#b6c8cb !important; }
+.plane-marker { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; background:rgba(6,19,28,.9); border:1px solid rgba(231,182,108,.7); box-shadow:0 0 24px rgba(231,182,108,.42); color:#f1ce94; font-size:17px; transform:rotate(45deg); }
+.app.ui-hidden .destination-control,.app.ui-hidden .theme-button,.app.ui-hidden .footage-credit { opacity:0; pointer-events:none; }
+
+.app[data-theme="light"] { --ink:#102431; --muted:#516b75; --line:rgba(23,64,76,.15); --glass:rgba(237,246,247,.72); --aqua:#147d89; --amber:#b56d20; }
+.app[data-theme="light"] .scene-map { background:radial-gradient(circle at 62% 34%,#d9eef1 0,#bcd6dc 42%,#8baab3 100%); }
+.app[data-theme="light"] .map-grid { opacity:.5; background-image:linear-gradient(rgba(20,73,87,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(20,73,87,.06) 1px,transparent 1px); }
+.app[data-theme="light"] .window-video,.app[data-theme="light"] .window-image { filter:brightness(1.08) saturate(.92); }
+.app[data-theme="light"] .window-shade { background:linear-gradient(180deg,rgba(244,250,250,.16),transparent 34%,transparent 65%,rgba(14,35,47,.38)); }
+.app[data-theme="light"] .icon-button,.app[data-theme="light"] .quiet-button,.app[data-theme="light"] .show-button { background:rgba(244,249,249,.7); border-color:rgba(19,69,82,.15); }
+.app[data-theme="light"] .mode-button.active { background:rgba(14,80,95,.1); color:#0a2a37; }
+.app[data-theme="light"] .destination-control select option { color:#102431; background:#f5faf9; }
+.app[data-theme="light"] .video-loading { color:#eaf4f4; text-shadow:0 1px 12px rgba(0,0,0,.5); }
+
+@media (max-width:900px) {
+  .destination-control { top:18px; left:18px; }
+  .theme-button { top:18px; right:18px; }
+  .mode-switch { top:82px; }
+  .window-top,.map-header { top:142px; }
+  .map-stage { top:190px; }
+}
+@media (max-width:760px) {
+  .destination-control { right:72px; height:48px; }
+  .destination-control label { display:none; }
+  .destination-control select { width:100%; max-width:none; }
+  .theme-button { width:48px; height:48px; padding:0; overflow:hidden; color:transparent; }
+  .theme-button::after { content:'☀'; position:absolute; inset:0; display:grid; place-items:center; color:var(--ink); font-size:.9rem; }
+  .app[data-theme="light"] .theme-button::after { content:'☾'; }
+  .mode-switch { top:auto; bottom:118px; }
+  .window-top { top:82px; }
+  .window-top .time-block { display:flex; }
+  .map-header { top:82px; }
+  .map-stage { top:132px; }
+  .footage-credit { right:18px; bottom:174px; }
+}

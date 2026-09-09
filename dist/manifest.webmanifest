@@ -1,0 +1,11 @@
+{
+  "name": "Cabin Focus",
+  "short_name": "Cabin Focus",
+  "description": "비행기 안 분위기에서 집중하는 조용한 공부 공간",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#06101a",
+  "theme_color": "#07121d",
+  "orientation": "any",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
