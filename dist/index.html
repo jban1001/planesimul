@@ -9,11 +9,12 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=8">
+  <link rel="stylesheet" href="./style.css?v=9">
 </head>
 <body>
   <main class="app" data-mode="window">
     <section class="scene scene-window" aria-label="비행기 창밖 풍경">
+      <canvas id="skyCanvas" class="window-canvas" aria-hidden="true"></canvas>
       <video id="destinationVideo" class="window-video is-active" autoplay muted playsinline preload="metadata" poster="./assets/window-view.png"></video>
       <video id="journeyVideoB" class="window-video" muted playsinline preload="metadata" poster="./assets/window-view.png"></video>
       <div id="videoFallback" class="window-image" aria-hidden="true"></div>
@@ -34,9 +35,9 @@
       </header>
 
       <div class="window-caption">
-        <p>37,000 FT</p>
+        <p id="captionAltitude">0 FT</p>
         <span></span>
-        <p>860 KM/H</p>
+        <p id="captionSpeed">0 KM/H</p>
       </div>
       <div class="journey-status glass" aria-live="polite">
         <div class="journey-status-row">
@@ -45,8 +46,8 @@
         </div>
         <div class="journey-track"><i id="journeyTrackFill"></i></div>
       </div>
-      <button id="journeyPreviewButton" class="journey-preview glass" type="button">ICN → TOKYO · FULL JOURNEY</button>
-      <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/airplane-wing-16127349/" target="_blank" rel="noopener">REAL WINDOW FOOTAGE · PEXELS</a>
+      <button id="journeyPreviewButton" class="journey-preview glass" type="button">RESTART ICN → CDG</button>
+      <a id="footageCredit" class="footage-credit">REAL-TIME RENDERED WINDOW VIEW</a>
     </section>
 
     <section class="scene scene-map" aria-label="기내 비행 지도">
@@ -112,9 +113,9 @@
       </div>
 
       <footer class="telemetry">
-        <div><p class="eyebrow">ALTITUDE</p><strong>37,000 <small>FT</small></strong></div>
-        <div><p class="eyebrow">GROUND SPEED</p><strong>860 <small>KM/H</small></strong></div>
-        <div><p class="eyebrow">OUTSIDE</p><strong>−52 <small>°C</small></strong></div>
+        <div><p class="eyebrow">ALTITUDE</p><strong id="telemetryAltitude">0 <small>FT</small></strong></div>
+        <div><p class="eyebrow">GROUND SPEED</p><strong id="telemetrySpeed">0 <small>KM/H</small></strong></div>
+        <div><p class="eyebrow">OUTSIDE</p><strong id="telemetryOutside">15 <small>°C</small></strong></div>
       </footer>
     </section>
 
@@ -192,6 +193,8 @@
     <button id="showUiButton" class="show-button" aria-label="조작 버튼 보이기">SHOW UI</button>
   </main>
   <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
-  <script src="./app.js?v=8"></script>
+  <script src="./skyview.js?v=9"></script>
+  <script src="./journey.js?v=9"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>
