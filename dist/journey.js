@@ -131,29 +131,83 @@
     return departure + arrival + drift;
   }
 
-  /* Rough solar position from the destination's local clock. Good enough to put
-     the sun in a believable place and to know whether it is night. */
-  function sunState(timezone) {
-    let hours = 12;
-    try {
-      const parts = new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timezone
-      }).format(new Date()).split(':');
-      hours = Number(parts[0]) + Number(parts[1]) / 60;
-    } catch (error) {
-      hours = new Date().getHours();
-    }
-    const dayAngle = (hours - 12) / 12 * Math.PI;
-    const elevation = Math.cos(dayAngle) * 0.92 - 0.06;
-    const azimuth = dayAngle + Math.PI * 0.5;
-    const horizontal = Math.max(0.12, Math.sqrt(Math.max(0, 1 - elevation * elevation)));
-    const dir = [Math.cos(azimuth) * horizontal, elevation, Math.sin(azimuth) * horizontal];
-    const length = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+  const DEG = Math.PI / 180;
+
+  /* Solar position for a real place at the real current moment. The sun has to
+     land in the right part of the sky relative to the runway heading, so a
+     believable-looking fake is not enough here: we need a true azimuth. */
+  function sunState(coords) {
+    const longitude = coords[0];
+    const latitude = coords[1];
+    const now = new Date();
+    const start = Date.UTC(now.getUTCFullYear(), 0, 0);
+    const dayOfYear = (now.getTime() - start) / 86400000;
+    const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
+
+    /* Fractional year, then the equation of time in minutes. */
+    const gamma = 2 * Math.PI / 365 * (dayOfYear - 1 + (utcHours - 12) / 24);
+    const eqTime = 229.18 * (0.000075
+      + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma)
+      - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
+    const declination = 0.006918
+      - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+      - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
+      - 0.002697 * Math.cos(3 * gamma) + 0.001480 * Math.sin(3 * gamma);
+
+    const trueSolarMinutes = utcHours * 60 + eqTime + 4 * longitude;
+    const hourAngle = (trueSolarMinutes / 4 - 180) * DEG;
+
+    const lat = latitude * DEG;
+    const sinElev = Math.sin(lat) * Math.sin(declination)
+      + Math.cos(lat) * Math.cos(declination) * Math.cos(hourAngle);
+    const elevation = Math.asin(Math.max(-1, Math.min(1, sinElev)));
+    /* Azimuth measured clockwise from true north. */
+    const azimuth = Math.atan2(
+      -Math.sin(hourAngle) * Math.cos(declination),
+      Math.sin(declination) * Math.cos(lat) - Math.cos(declination) * Math.sin(lat) * Math.cos(hourAngle)
+    );
+
     return {
-      sunDir: [dir[0] / length, dir[1] / length, dir[2] / length],
-      sunElev: elevation,
-      night: smoothstep(0.02, -0.16, elevation)
+      azimuth: (azimuth / DEG + 360) % 360,
+      elevation: elevation / DEG,
+      sunElev: Math.sin(elevation),
+      night: smoothstep(0.5, -3.0, elevation / DEG)
     };
+  }
+
+  /* Great circle bearing, used for the cruise heading. */
+  function bearing(from, to) {
+    const lat1 = from[1] * DEG;
+    const lat2 = to[1] * DEG;
+    const dLon = (to[0] - from[0]) * DEG;
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    return (Math.atan2(y, x) / DEG + 360) % 360;
+  }
+
+  function angleLerp(a, b, k) {
+    let delta = ((b - a + 540) % 360) - 180;
+    return (a + delta * k + 360) % 360;
+  }
+
+  /* Where the nose is pointing: lined up with the departure runway, swinging on
+     to the great circle course after takeoff, then on to the arrival runway. */
+  function headingAt(progress, route) {
+    if (progress < 0.085) return route.originHeading;
+    if (progress < 0.235) return angleLerp(route.originHeading, route.courseHeading, smoothstep(0.085, 0.235, progress));
+    if (progress < 0.800) return route.courseHeading;
+    if (progress < 0.930) return angleLerp(route.courseHeading, route.destinationHeading, smoothstep(0.800, 0.930, progress));
+    return route.destinationHeading;
+  }
+
+  /* Rotate the sun into the aircraft frame, where +z is the nose and +x is the
+     right wing. This is what makes a westbound evening departure put the sun in
+     the correct window. */
+  function sunVector(sun, headingDeg) {
+    const relative = (sun.azimuth - headingDeg) * DEG;
+    const elevation = sun.elevation * DEG;
+    const horizontal = Math.cos(elevation);
+    return [Math.sin(relative) * horizontal, Math.sin(elevation), Math.cos(relative) * horizontal];
   }
 
   function biomeKeyFor(key, destination) {
@@ -189,14 +243,25 @@
 
   function mixSun(a, b, k) {
     return {
-      sunDir: [
-        a.sunDir[0] + (b.sunDir[0] - a.sunDir[0]) * k,
-        a.sunDir[1] + (b.sunDir[1] - a.sunDir[1]) * k,
-        a.sunDir[2] + (b.sunDir[2] - a.sunDir[2]) * k
-      ],
+      azimuth: angleLerp(a.azimuth, b.azimuth, k),
+      elevation: a.elevation + (b.elevation - a.elevation) * k,
       sunElev: a.sunElev + (b.sunElev - a.sunElev) * k,
       night: a.night + (b.night - a.night) * k
     };
+  }
+
+  /* Numerically integrate the speed profile so we know, before the journey
+     starts, how far along the world the touchdown point will be. The arrival
+     runway has to be placed there. */
+  function travelAt(progress, durationSec, steps) {
+    const n = steps || 480;
+    const limit = Math.min(1, Math.max(0, progress));
+    const dt = limit / n;
+    let distance = 0;
+    for (let i = 0; i < n; i++) {
+      distance += sampleProfile((i + 0.5) * dt).speed * dt * durationSec;
+    }
+    return distance;
   }
 
   /* The landscape and the light belong to where the aircraft actually is, so
@@ -208,10 +273,12 @@
 
   /* Full renderer state for a moment in the journey. `biome` and `sun` may each
      be a single value, or a { from, to } pair that crosses over en route. */
-  function frameState(progress, biome, sun, seconds) {
+  function frameState(progress, biome, sun, seconds, route) {
     const k = crossfade(progress);
     if (biome && biome.to) biome = mixBiome(biome.from, biome.to, k);
     if (sun && sun.to) sun = mixSun(sun.from, sun.to, k);
+    const heading = route ? headingAt(progress, route) : 0;
+    const sunDir = sun.azimuth === undefined ? sun.sunDir : sunVector(sun, heading);
     const profile = sampleProfile(progress);
     const deckThick = 820;
     const nearDeck = 1 - smoothstep(0, deckThick * 1.35, Math.abs(profile.alt - biome.deckY));
@@ -220,8 +287,18 @@
       ? 'cloudbreak'
       : profile.phase;
 
+    /* Below half way the visible airport is the one behind us; after that it is
+       the one ahead, parked at the precomputed touchdown distance. */
+    const runway = !route ? { z0: 0, lengthM: 3500, widthM: 60, lighted: true }
+      : (progress < 0.5
+        /* Line up past the piano keys, the way an aircraft actually does.
+           Starting on top of them fills the window with white bars. */
+        ? { z0: -120, lengthM: route.origin.lengthM, widthM: route.origin.widthM, lighted: route.origin.lighted }
+        : { z0: route.touchdownDistance - 340, lengthM: route.destination.lengthM, widthM: route.destination.widthM, lighted: route.destination.lighted });
+
     return {
       phase: phase,
+      heading: heading,
       alt: profile.alt,
       speedKmh: profile.speed * 3.6,
       render: {
@@ -242,9 +319,13 @@
         water: biome.water,
         snow: biome.snow,
         urban: biome.urban,
-        sunDir: sun.sunDir,
+        sunDir: sunDir,
         sunElev: sun.sunElev,
-        night: sun.night
+        night: sun.night,
+        runwayZ0: runway.z0,
+        runwayLength: runway.lengthM,
+        runwayWidth: runway.widthM,
+        runwayLit: runway.lighted ? 1 : 0
       }
     };
   }
@@ -254,10 +335,26 @@
     frameState: frameState,
     biomeFor: biomeFor,
     sunState: sunState,
-    route: function (originKey, origin, destinationKey, destination) {
+    bearing: bearing,
+    travelAt: travelAt,
+    route: function (originKey, origin, destinationKey, destination, durationSec) {
+      const airports = global.Airports;
+      const fallback = { lengthM: 3500, widthM: 60, headingDeg: 0, lighted: true };
+      const originAirport = (airports && airports.get(originKey)) || fallback;
+      const destinationAirport = (airports && airports.get(destinationKey)) || fallback;
+      const courseHeading = bearing(origin.coords, destination.coords);
       return {
         biome: { from: biomeFor(originKey, origin), to: biomeFor(destinationKey, destination) },
-        sun: { from: sunState(origin.timezone), to: sunState(destination.timezone) }
+        sun: { from: sunState(origin.coords), to: sunState(destination.coords) },
+        origin: originAirport,
+        destination: destinationAirport,
+        originHeading: originAirport.headingDeg,
+        /* No arrival data for a searched destination: land on the reciprocal of
+           the course, which is what a runway roughly aligned with the approach
+           would give. */
+        destinationHeading: destinationAirport === fallback ? courseHeading : destinationAirport.headingDeg,
+        courseHeading: courseHeading,
+        touchdownDistance: travelAt(0.988, durationSec || 480)
       };
     },
     phaseLabel: function (phase) { return PHASE_LABELS[phase] || 'CRUISE'; }
