@@ -107,7 +107,7 @@ button { font:inherit; color:inherit; }
 /* Destination video + live map upgrade */
 .window-video { position:absolute; inset:-1%; width:102%; height:102%; object-fit:cover; opacity:0; transition:opacity 1.2s ease,filter .5s ease; }
 .window-image { transition:opacity 1.2s ease,filter .5s ease; }
-.scene-window.video-ready .window-video { opacity:1; }
+.scene-window.video-ready .window-video.is-active { opacity:1; }
 .scene-window.video-switching .window-video { opacity:0; }
 .scene-window[data-flight-phase="takeoff"] .window-video { filter:saturate(.92) contrast(1.04); }
 .scene-window[data-flight-phase="climb"] .window-video { filter:saturate(.98) brightness(1.03); }

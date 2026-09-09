@@ -9,12 +9,13 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=7">
+  <link rel="stylesheet" href="./style.css?v=8">
 </head>
 <body>
   <main class="app" data-mode="window">
     <section class="scene scene-window" aria-label="비행기 창밖 풍경">
-      <video id="destinationVideo" class="window-video" autoplay muted loop playsinline preload="metadata" poster="./assets/window-view.png"></video>
+      <video id="destinationVideo" class="window-video is-active" autoplay muted playsinline preload="metadata" poster="./assets/window-view.png"></video>
+      <video id="journeyVideoB" class="window-video" muted playsinline preload="metadata" poster="./assets/window-view.png"></video>
       <div id="videoFallback" class="window-image" aria-hidden="true"></div>
       <div id="videoLoading" class="video-loading"><span></span> DESTINATION VIEW LOADING</div>
       <div class="window-shade" aria-hidden="true"></div>
@@ -44,7 +45,7 @@
         </div>
         <div class="journey-track"><i id="journeyTrackFill"></i></div>
       </div>
-      <button id="journeyPreviewButton" class="journey-preview glass" type="button">ICN → TOKYO · 2 MIN JOURNEY</button>
+      <button id="journeyPreviewButton" class="journey-preview glass" type="button">ICN → TOKYO · FULL JOURNEY</button>
       <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/airplane-wing-16127349/" target="_blank" rel="noopener">REAL WINDOW FOOTAGE · PEXELS</a>
     </section>
 
@@ -191,6 +192,6 @@
     <button id="showUiButton" class="show-button" aria-label="조작 버튼 보이기">SHOW UI</button>
   </main>
   <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
-  <script src="./app.js?v=7"></script>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
