@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=5">
 </head>
 <body>
   <main class="app" data-mode="window">
@@ -37,7 +37,7 @@
         <span></span>
         <p>860 KM/H</p>
       </div>
-      <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/paris-aerial-view-with-famous-landmarks-38835023/" target="_blank" rel="noopener">DESTINATION FOOTAGE · PEXELS</a>
+      <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/airplane-wing-16127349/" target="_blank" rel="noopener">REAL WINDOW FOOTAGE · PEXELS</a>
     </section>
 
     <section class="scene scene-map" aria-label="기내 비행 지도">
@@ -98,7 +98,7 @@
           <p class="eyebrow">ESTIMATED ARRIVAL</p>
           <p id="arrivalTime" class="arrival">11h 42m</p>
           <div class="flight-progress"><span></span></div>
-          <div class="airport-row"><span>ICN</span><small>SIMULATED ROUTE</small><span id="cardAirportCode">CDG</span></div>
+          <div class="airport-row"><span>ICN</span><small><span id="flightPercent">0.00%</span> · IN FLIGHT</small><span id="cardAirportCode">CDG</span></div>
         </div>
       </div>
 
@@ -112,13 +112,49 @@
     <section class="destination-control glass" aria-label="여행지 선택">
       <label for="destinationSelect">DESTINATION</label>
       <select id="destinationSelect">
-        <option value="paris">Paris · France</option>
-        <option value="newyork">New York · USA</option>
-        <option value="tokyo">Tokyo · Japan</option>
-        <option value="reykjavik">Reykjavík · Iceland</option>
-        <option value="zurich">Zürich · Switzerland</option>
+        <optgroup label="POPULAR">
+          <option value="paris">Paris · France</option>
+          <option value="newyork">New York · USA</option>
+          <option value="tokyo">Tokyo · Japan</option>
+          <option value="london">London · UK</option>
+          <option value="rome">Rome · Italy</option>
+          <option value="barcelona">Barcelona · Spain</option>
+        </optgroup>
+        <optgroup label="ASIA & OCEANIA">
+          <option value="singapore">Singapore</option>
+          <option value="bangkok">Bangkok · Thailand</option>
+          <option value="bali">Bali · Indonesia</option>
+          <option value="sydney">Sydney · Australia</option>
+          <option value="auckland">Auckland · New Zealand</option>
+        </optgroup>
+        <optgroup label="SCENIC ROUTES">
+          <option value="reykjavik">Reykjavík · Iceland</option>
+          <option value="zurich">Zürich · Switzerland</option>
+          <option value="helsinki">Helsinki · Finland</option>
+          <option value="honolulu">Honolulu · Hawaiʻi</option>
+          <option value="vancouver">Vancouver · Canada</option>
+        </optgroup>
+        <optgroup label="MORE CITIES">
+          <option value="dubai">Dubai · UAE</option>
+          <option value="istanbul">Istanbul · Türkiye</option>
+          <option value="cairo">Cairo · Egypt</option>
+          <option value="losangeles">Los Angeles · USA</option>
+        </optgroup>
       </select>
+      <button id="openDestinationSearch" class="destination-search-button" type="button">직접 입력</button>
     </section>
+    <dialog id="destinationDialog" class="destination-dialog">
+      <div class="dialog-head">
+        <div><p class="eyebrow">ANYWHERE IN THE WORLD</p><h2>어디로 떠날까요?</h2></div>
+        <button id="closeDestinationSearch" class="dialog-close" type="button" aria-label="닫기">×</button>
+      </div>
+      <form id="destinationSearchForm" class="destination-search-form">
+        <input id="destinationQuery" type="search" minlength="2" placeholder="도시, 섬, 지역을 입력하세요" autocomplete="off" aria-label="여행지 검색" required>
+        <button type="submit">SEARCH</button>
+      </form>
+      <p id="destinationSearchStatus" class="search-status">예: Tromsø, Jeju, Santorini, Patagonia</p>
+      <div id="destinationResults" class="destination-results"></div>
+    </dialog>
 
     <nav class="mode-switch glass" aria-label="화면 모드">
       <button class="mode-button active" data-set-mode="window" aria-pressed="true"><span class="mode-icon">◯</span> WINDOW</button>
@@ -147,6 +183,6 @@
     <button id="showUiButton" class="show-button" aria-label="조작 버튼 보이기">SHOW UI</button>
   </main>
   <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>
