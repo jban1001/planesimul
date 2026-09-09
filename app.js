@@ -39,9 +39,10 @@ const WINDOW_VIEWS = [
   { video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
   { video:'https://videos.pexels.com/video-files/34597437/14661683_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-in-bright-blue-sky-over-clouds-34597437/' }
 ];
-const JOURNEY_MIN_MS = 4 * 60 * 1000;
-const JOURNEY_MAX_MS = 12 * 60 * 1000;
-const JOURNEY_TIME_COMPRESSION = 12;
+/* Journeys run at real flight length. The app is meant to be left playing
+   while you work, so Incheon to Paris takes the eleven hours it takes. */
+const CRUISE_SPEED_KMH = 820;
+const GROUND_TIME_HOURS = 0.65;
 const DESTINATIONS = {
   paris: { name:'Paris', ko:'파리', code:'CDG', coords:[2.3522,48.8566], timezone:'Europe/Paris', video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
   newyork: { name:'New York', ko:'뉴욕', code:'JFK', coords:[-74.006,40.7128], timezone:'America/New_York', video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
@@ -215,8 +216,9 @@ function stopJourneySequence() {
   journeyVideos.forEach(video => { video.loop = false; });
 }
 function journeyDurationFor(destination) {
-  const realMs = (distanceKm(ORIGIN.coords,destination.coords) / 820 + .65) * 3600 * 1000;
-  return Math.min(JOURNEY_MAX_MS,Math.max(JOURNEY_MIN_MS,realMs / JOURNEY_TIME_COMPRESSION));
+  const hours = distanceKm(ORIGIN.coords,destination.coords) / CRUISE_SPEED_KMH + GROUND_TIME_HOURS;
+  const seconds = Math.max(Journey.minJourneySec,hours * 3600);
+  return seconds * 1000;
 }
 function journeyLabel(prefix) {
   return `${prefix} ${ORIGIN.code} → ${currentDestination.code}`;
