@@ -469,6 +469,10 @@ function routeCoordinates(start,end,steps=80) {
 }
 function updateMapRoute() {
   if (!map || !map.isStyleLoaded()) return;
+  /* Reveal the real map here rather than only from the 'load' event: on some
+     devices the style settles via 'styledata' first and 'load' never lands,
+     which left the tiled map permanently transparent behind the SVG fallback. */
+  mapStage.classList.add('map-ready');
   const coordinates = routeCoordinates(ORIGIN.coords,currentDestination.coords);
   currentRouteCoordinates = coordinates;
   const geojson = {type:'Feature',properties:{},geometry:{type:'LineString',coordinates}};
@@ -482,7 +486,7 @@ function updateMapRoute() {
       {type:'Feature',properties:{label:currentDestination.code},geometry:{type:'Point',coordinates:coordinates[coordinates.length-1]}}
     ]}});
     map.addLayer({id:'airports-dot',type:'circle',source:'airports',paint:{'circle-radius':5,'circle-color':'#e7b66c','circle-stroke-color':'#fff','circle-stroke-width':1}});
-    map.addLayer({id:'airports-label',type:'symbol',source:'airports',layout:{'text-field':['get','label'],'text-offset':[0,1.4],'text-size':12},paint:{'text-color':app.dataset.theme === 'light' ? '#173541' : '#e5efef','text-halo-color':app.dataset.theme === 'light' ? '#f4faf9' : '#07121d','text-halo-width':1.5}});
+    map.addLayer({id:'airports-label',type:'symbol',source:'airports',layout:{'text-field':['get','label'],'text-font':['Noto Sans Regular'],'text-offset':[0,1.4],'text-size':12},paint:{'text-color':app.dataset.theme === 'light' ? '#173541' : '#e5efef','text-halo-color':app.dataset.theme === 'light' ? '#f4faf9' : '#07121d','text-halo-width':1.5}});
   }
   if (map.getSource('airports')) map.getSource('airports').setData({type:'FeatureCollection',features:[
     {type:'Feature',properties:{label:'ICN'},geometry:{type:'Point',coordinates:coordinates[0]}},

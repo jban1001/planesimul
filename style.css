@@ -216,6 +216,12 @@ button { font:inherit; color:inherit; }
   .journey-status { width:160px; padding:10px 11px; }
   .journey-preview { max-width:138px; padding:0 10px; font-size:.56rem; }
   .footage-credit { display:none; }
+  /* The mode switch goes full width here, so the quiet button has to leave
+     that band or it lands on top of the FLIGHT MAP label. */
+  .quiet-button { bottom:176px; right:14px; padding:8px 10px; }
+  /* In map mode that spot belongs to the OpenStreetMap attribution, which has
+     to stay legible. Hiding the UI is a window-mode gesture anyway. */
+  .app[data-mode="map"] .quiet-button { display:none; }
 }
 
 .window-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; opacity:0; transition:opacity 1.1s ease; }
