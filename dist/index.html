@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=7">
 </head>
 <body>
   <main class="app" data-mode="window">
@@ -37,6 +37,14 @@
         <span></span>
         <p>860 KM/H</p>
       </div>
+      <div class="journey-status glass" aria-live="polite">
+        <div class="journey-status-row">
+          <span id="flightStageLabel">CRUISE</span>
+          <span id="journeyProgressText">0%</span>
+        </div>
+        <div class="journey-track"><i id="journeyTrackFill"></i></div>
+      </div>
+      <button id="journeyPreviewButton" class="journey-preview glass" type="button">ICN → TOKYO · 2 MIN JOURNEY</button>
       <a id="footageCredit" class="footage-credit" href="https://www.pexels.com/video/airplane-wing-16127349/" target="_blank" rel="noopener">REAL WINDOW FOOTAGE · PEXELS</a>
     </section>
 
@@ -183,6 +191,6 @@
     <button id="showUiButton" class="show-button" aria-label="조작 버튼 보이기">SHOW UI</button>
   </main>
   <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
-  <script src="./app.js?v=6"></script>
+  <script src="./app.js?v=7"></script>
 </body>
 </html>
