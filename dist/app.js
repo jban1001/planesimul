@@ -17,12 +17,37 @@ const windowScene = document.querySelector('.scene-window');
 const footageCredit = document.querySelector('#footageCredit');
 const themeButton = document.querySelector('#themeButton');
 const mapStage = document.querySelector('.map-stage');
+const destinationDialog = document.querySelector('#destinationDialog');
+const destinationSearchForm = document.querySelector('#destinationSearchForm');
+const destinationQuery = document.querySelector('#destinationQuery');
+const destinationResults = document.querySelector('#destinationResults');
+const destinationSearchStatus = document.querySelector('#destinationSearchStatus');
+const WINDOW_VIEWS = [
+  { video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
+  { video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
+  { video:'https://videos.pexels.com/video-files/34597437/14661683_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-in-bright-blue-sky-over-clouds-34597437/' }
+];
 const DESTINATIONS = {
-  paris: { name:'Paris', ko:'파리', code:'CDG', coords:[2.3522,48.8566], timezone:'Europe/Paris', video:'https://videos.pexels.com/video-files/38835023/16508092_3840_2160_25fps.mp4', source:'https://www.pexels.com/video/paris-aerial-view-with-famous-landmarks-38835023/' },
-  newyork: { name:'New York', ko:'뉴욕', code:'JFK', coords:[-74.006,40.7128], timezone:'America/New_York', video:'https://videos.pexels.com/video-files/5796436/5796436-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aerial-view-of-new-york-city-5796436/' },
-  tokyo: { name:'Tokyo', ko:'도쿄', code:'NRT', coords:[139.6917,35.6895], timezone:'Asia/Tokyo', video:'https://videos.pexels.com/video-files/35462656/15024368_1920_1080_30fps.mp4', source:'https://www.pexels.com/video/aerial-view-of-tokyo-city-skyline-35462656/' },
-  reykjavik: { name:'Reykjavík', ko:'레이캬비크', code:'KEF', coords:[-21.9426,64.1466], timezone:'Atlantic/Reykjavik', video:'https://videos.pexels.com/video-files/34476866/14609179_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/scenic-drone-footage-of-icelandic-landscape-34476866/' },
-  zurich: { name:'Zürich', ko:'취리히', code:'ZRH', coords:[8.5417,47.3769], timezone:'Europe/Zurich', video:'https://videos.pexels.com/video-files/3971604/3971604-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/drone-footage-of-swiss-alps-3971604/' }
+  paris: { name:'Paris', ko:'파리', code:'CDG', coords:[2.3522,48.8566], timezone:'Europe/Paris', video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
+  newyork: { name:'New York', ko:'뉴욕', code:'JFK', coords:[-74.006,40.7128], timezone:'America/New_York', video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
+  tokyo: { name:'Tokyo', ko:'도쿄', code:'NRT', coords:[139.6917,35.6895], timezone:'Asia/Tokyo', video:'https://videos.pexels.com/video-files/34597437/14661683_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-in-bright-blue-sky-over-clouds-34597437/' },
+  reykjavik: { name:'Reykjavík', ko:'레이캬비크', code:'KEF', coords:[-21.9426,64.1466], timezone:'Atlantic/Reykjavik', video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
+  zurich: { name:'Zürich', ko:'취리히', code:'ZRH', coords:[8.5417,47.3769], timezone:'Europe/Zurich', video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
+  london: { name:'London', ko:'런던', code:'LHR', coords:[-0.1276,51.5072], timezone:'Europe/London' },
+  rome: { name:'Rome', ko:'로마', code:'FCO', coords:[12.4964,41.9028], timezone:'Europe/Rome' },
+  barcelona: { name:'Barcelona', ko:'바르셀로나', code:'BCN', coords:[2.1734,41.3851], timezone:'Europe/Madrid' },
+  singapore: { name:'Singapore', ko:'싱가포르', code:'SIN', coords:[103.8198,1.3521], timezone:'Asia/Singapore' },
+  bangkok: { name:'Bangkok', ko:'방콕', code:'BKK', coords:[100.5018,13.7563], timezone:'Asia/Bangkok' },
+  bali: { name:'Bali', ko:'발리', code:'DPS', coords:[115.1889,-8.4095], timezone:'Asia/Makassar' },
+  sydney: { name:'Sydney', ko:'시드니', code:'SYD', coords:[151.2093,-33.8688], timezone:'Australia/Sydney' },
+  auckland: { name:'Auckland', ko:'오클랜드', code:'AKL', coords:[174.7633,-36.8485], timezone:'Pacific/Auckland' },
+  helsinki: { name:'Helsinki', ko:'헬싱키', code:'HEL', coords:[24.9384,60.1699], timezone:'Europe/Helsinki' },
+  honolulu: { name:'Honolulu', ko:'호놀룰루', code:'HNL', coords:[-157.8583,21.3069], timezone:'Pacific/Honolulu' },
+  vancouver: { name:'Vancouver', ko:'밴쿠버', code:'YVR', coords:[-123.1207,49.2827], timezone:'America/Vancouver' },
+  dubai: { name:'Dubai', ko:'두바이', code:'DXB', coords:[55.2708,25.2048], timezone:'Asia/Dubai' },
+  istanbul: { name:'Istanbul', ko:'이스탄불', code:'IST', coords:[28.9784,41.0082], timezone:'Europe/Istanbul' },
+  cairo: { name:'Cairo', ko:'카이로', code:'CAI', coords:[31.2357,30.0444], timezone:'Africa/Cairo' },
+  losangeles: { name:'Los Angeles', ko:'로스앤젤레스', code:'LAX', coords:[-118.2437,34.0522], timezone:'America/Los_Angeles' }
 };
 const ORIGIN = { name:'Seoul', code:'ICN', coords:[126.4505,37.4691] };
 
@@ -35,7 +60,10 @@ let installPrompt = null;
 let currentDestination = DESTINATIONS.paris;
 let map = null;
 let planeMarker = null;
-let planeAnimation = null;
+let currentRouteCoordinates = [];
+let flightStartedAt = Date.now();
+let flightDurationMs = 0;
+let flightTicker = null;
 
 function updateClock() {
   const localValue = new Intl.DateTimeFormat('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
@@ -68,6 +96,43 @@ function distanceKm(a,b) {
   return 6371 * 2 * Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
 }
 
+function selectWindowView(destination) {
+  if (destination.video) return {video:destination.video,source:destination.source};
+  const index = Math.abs(Math.round(destination.coords[0] + destination.coords[1])) % WINDOW_VIEWS.length;
+  return WINDOW_VIEWS[index];
+}
+function formatRemaining(milliseconds) {
+  const totalSeconds = Math.max(0,Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+}
+function updateFlightProgress() {
+  const elapsed = Math.max(0,Date.now() - flightStartedAt);
+  const progress = flightDurationMs ? Math.min(1,elapsed / flightDurationMs) : 0;
+  document.querySelector('#arrivalTime').textContent = formatRemaining(flightDurationMs - elapsed);
+  document.querySelector('.flight-progress span').style.width = `${progress * 100}%`;
+  document.querySelector('#flightPercent').textContent = `${(progress * 100).toFixed(2)}%`;
+  if (planeMarker && currentRouteCoordinates.length) {
+    const scaled = progress * (currentRouteCoordinates.length - 1);
+    const index = Math.floor(scaled);
+    const next = currentRouteCoordinates[Math.min(index + 1,currentRouteCoordinates.length - 1)];
+    const part = scaled - index;
+    const current = currentRouteCoordinates[index];
+    planeMarker.setLngLat([current[0] + (next[0]-current[0])*part,current[1] + (next[1]-current[1])*part]);
+  }
+  if (progress >= 1 && flightTicker) { clearInterval(flightTicker); flightTicker = null; }
+}
+function resetFlight(destination) {
+  clearInterval(flightTicker);
+  flightStartedAt = Date.now();
+  flightDurationMs = Math.max(45 * 60 * 1000,(distanceKm(ORIGIN.coords,destination.coords) / 820 + .65) * 3600 * 1000);
+  document.querySelector('.flight-progress span').style.width = '0%';
+  document.querySelector('#flightPercent').textContent = '0.00%';
+  updateFlightProgress();
+  flightTicker = setInterval(updateFlightProgress,1000);
+}
 function setDestination(key) {
   const destination = DESTINATIONS[key] || DESTINATIONS.paris;
   currentDestination = destination;
@@ -77,14 +142,14 @@ function setDestination(key) {
   document.querySelector('#mapAirportCode').textContent = destination.code;
   document.querySelector('#cardAirportCode').textContent = destination.code;
   document.querySelector('#destinationClockLabel').textContent = `${destination.name.toUpperCase()} · LOCAL TIME`;
-  const hours = Math.max(1,Math.ceil(distanceKm(ORIGIN.coords,destination.coords) / 820 * 2) / 2);
-  document.querySelector('#arrivalTime').textContent = `${Math.floor(hours)}h ${String((hours % 1) * 60).padStart(2,'0')}m`;
-  footageCredit.href = destination.source;
-  footageCredit.textContent = `${destination.name.toUpperCase()} FOOTAGE · PEXELS`;
+  const view = selectWindowView(destination);
+  footageCredit.href = view.source;
+  footageCredit.textContent = 'REAL WINDOW FOOTAGE · PEXELS';
   windowScene.classList.remove('video-ready','video-error');
-  destinationVideo.src = destination.video;
+  destinationVideo.src = view.video;
   destinationVideo.load();
   destinationVideo.play().catch(() => {});
+  resetFlight(destination);
   updateClock();
   updateMapRoute();
 }
@@ -179,7 +244,7 @@ function setTheme(theme) {
   themeButton.setAttribute('aria-label', theme === 'light' ? '어두운 테마로 변경' : '밝은 테마로 변경');
   if (map) {
     map.setStyle(mapStyle(theme));
-    map.once('style.load', updateMapRoute);
+    map.once('idle',updateMapRoute);
   }
 }
 themeButton.addEventListener('click', () => setTheme(app.dataset.theme === 'light' ? 'dark' : 'light'));
@@ -199,6 +264,54 @@ installButton.addEventListener('click', async () => {
   installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; installButton.classList.add('hidden');
 });
 
+function ensureCustomOption(destination) {
+  let option = destinationSelect.querySelector('option[value="custom"]');
+  if (!option) { option = document.createElement('option'); option.value = 'custom'; destinationSelect.append(option); }
+  option.textContent = `${destination.name} · ${destination.country || 'Custom'}`;
+}
+document.querySelector('#openDestinationSearch').addEventListener('click', () => {
+  destinationDialog.showModal();
+  setTimeout(() => destinationQuery.focus(),50);
+});
+document.querySelector('#closeDestinationSearch').addEventListener('click', () => destinationDialog.close());
+destinationDialog.addEventListener('click', event => { if (event.target === destinationDialog) destinationDialog.close(); });
+destinationSearchForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const query = destinationQuery.value.trim();
+  if (query.length < 2) return;
+  destinationSearchStatus.textContent = '전 세계 여행지를 찾는 중…';
+  destinationResults.replaceChildren();
+  try {
+    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=ko&format=json`);
+    if (!response.ok) throw new Error('search failed');
+    const data = await response.json();
+    const results = data.results || [];
+    destinationSearchStatus.textContent = results.length ? '원하는 위치를 선택하면 ICN에서 새 비행이 시작됩니다.' : '검색 결과가 없습니다. 도시명과 국가를 함께 입력해보세요.';
+    results.forEach(result => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'destination-result';
+      const text = document.createElement('div');
+      const title = document.createElement('strong'); title.textContent = result.name;
+      const detail = document.createElement('small'); detail.textContent = [result.admin1,result.country].filter(Boolean).join(' · ');
+      const action = document.createElement('span'); action.textContent = 'FLY HERE →';
+      text.append(title,detail); button.append(text,action);
+      button.addEventListener('click', () => {
+        const latin = (result.name.match(/[A-Za-z]/g) || []).slice(0,3).join('').toUpperCase();
+        const code = latin.length === 3 ? latin : result.name.slice(0,3).toUpperCase();
+        const custom = {name:result.name,ko:result.name,code,coords:[result.longitude,result.latitude],timezone:result.timezone || 'UTC',country:result.country || ''};
+        DESTINATIONS.custom = custom;
+        localStorage.setItem('cabin-custom-destination',JSON.stringify(custom));
+        ensureCustomOption(custom);
+        setDestination('custom');
+        destinationDialog.close();
+      });
+      destinationResults.append(button);
+    });
+  } catch (error) {
+    destinationSearchStatus.textContent = '지금은 위치 검색에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+  }
+});
+
 function routeCoordinates(start,end,steps=80) {
   let deltaLon = end[0] - start[0];
   if (deltaLon > 180) deltaLon -= 360;
@@ -214,12 +327,13 @@ function routeCoordinates(start,end,steps=80) {
 function updateMapRoute() {
   if (!map || !map.isStyleLoaded()) return;
   const coordinates = routeCoordinates(ORIGIN.coords,currentDestination.coords);
+  currentRouteCoordinates = coordinates;
   const geojson = {type:'Feature',properties:{},geometry:{type:'LineString',coordinates}};
   if (map.getSource('flight-route')) map.getSource('flight-route').setData(geojson);
   else {
     map.addSource('flight-route',{type:'geojson',data:geojson});
-    map.addLayer({id:'flight-route-glow',type:'line',source:'flight-route',paint:{'line-color':app.dataset.theme === 'light' ? '#167b89' : '#66d5dc','line-width':8,'line-opacity':.16,'line-blur':5}});
-    map.addLayer({id:'flight-route-line',type:'line',source:'flight-route',paint:{'line-color':app.dataset.theme === 'light' ? '#a95f1b' : '#e7b66c','line-width':2.5,'line-opacity':.95,'line-dasharray':[2,2]}});
+    map.addLayer({id:'flight-route-glow',type:'line',source:'flight-route',paint:{'line-color':app.dataset.theme === 'light' ? '#006778' : '#66d5dc','line-width':app.dataset.theme === 'light' ? 12 : 9,'line-opacity':app.dataset.theme === 'light' ? .34 : .2,'line-blur':4}});
+    map.addLayer({id:'flight-route-line',type:'line',source:'flight-route',paint:{'line-color':app.dataset.theme === 'light' ? '#b84400' : '#f2c578','line-width':app.dataset.theme === 'light' ? 3.6 : 2.8,'line-opacity':1,'line-dasharray':[2,1.5]}});
     map.addSource('airports',{type:'geojson',data:{type:'FeatureCollection',features:[
       {type:'Feature',properties:{label:'ICN'},geometry:{type:'Point',coordinates:coordinates[0]}},
       {type:'Feature',properties:{label:currentDestination.code},geometry:{type:'Point',coordinates:coordinates[coordinates.length-1]}}
@@ -237,23 +351,22 @@ function updateMapRoute() {
     const marker = document.createElement('div'); marker.className = 'plane-marker'; marker.textContent = '✈';
     planeMarker = new maplibregl.Marker({element:marker,anchor:'center'}).setLngLat(coordinates[0]).addTo(map);
   }
-  cancelAnimationFrame(planeAnimation);
-  const startTime = performance.now();
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function movePlane(now) {
-    const t = reduceMotion ? .42 : ((now-startTime)%60000)/60000;
-    const scaled = t*(coordinates.length-1); const i = Math.floor(scaled); const next = coordinates[Math.min(i+1,coordinates.length-1)]; const p = scaled-i;
-    planeMarker.setLngLat([coordinates[i][0]+(next[0]-coordinates[i][0])*p,coordinates[i][1]+(next[1]-coordinates[i][1])*p]);
-    if (!reduceMotion) planeAnimation = requestAnimationFrame(movePlane);
-  }
-  planeAnimation = requestAnimationFrame(movePlane);
+  planeMarker.setLngLat(coordinates[0]);
+  updateFlightProgress();
 }
 function initializeMap() {
   if (!window.maplibregl) return;
   map = new maplibregl.Map({container:'realMap',style:mapStyle(app.dataset.theme),center:[70,45],zoom:1.4,attributionControl:true,interactive:true});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
   map.on('load',() => { mapStage.classList.add('map-ready'); updateMapRoute(); });
+  map.on('styledata',() => {
+    if (map.isStyleLoaded() && !map.getSource('flight-route')) updateMapRoute();
+  });
 }
 initializeMap();
+try {
+  const savedCustom = JSON.parse(localStorage.getItem('cabin-custom-destination'));
+  if (savedCustom?.coords?.length === 2) { DESTINATIONS.custom = savedCustom; ensureCustomOption(savedCustom); }
+} catch (error) {}
 setDestination(localStorage.getItem('cabin-destination') || 'paris');
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));

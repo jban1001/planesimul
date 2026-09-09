@@ -40,7 +40,7 @@ button { font:inherit; color:inherit; }
 .flight-card { position:absolute; left:4%; top:50%; transform:translateY(-50%); width:190px; padding:18px; border-left:1px solid rgba(231,182,108,.6); background:linear-gradient(90deg,rgba(6,17,25,.8),transparent); }
 .arrival { margin:4px 0 18px; font-family:Consolas,"SFMono-Regular",monospace; font-size:1.55rem; }
 .flight-progress { height:2px; background:rgba(255,255,255,.13); }
-.flight-progress span { display:block; width:42%; height:100%; background:linear-gradient(90deg,var(--aqua),var(--amber)); box-shadow:0 0 9px rgba(102,213,220,.5); }
+.flight-progress span { display:block; width:0; height:100%; background:linear-gradient(90deg,var(--aqua),var(--amber)); box-shadow:0 0 9px rgba(102,213,220,.5); transition:width .95s linear; }
 .airport-row { display:flex; justify-content:space-between; margin-top:9px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.67rem; color:#abc0c4; }
 .airport-row small { color:#6d8790; font-size:.55rem; }
 .telemetry { position:absolute; left:4.5vw; bottom:95px; display:flex; gap:clamp(25px,5vw,74px); }
@@ -112,6 +112,25 @@ button { font:inherit; color:inherit; }
 .destination-control label { font-family:Consolas,"SFMono-Regular",monospace; font-size:.6rem; letter-spacing:.15em; color:var(--muted); }
 .destination-control select { max-width:190px; border:0; outline:0; background:transparent; color:var(--ink); font-size:.88rem; font-weight:600; cursor:pointer; }
 .destination-control select option { color:#10202a; background:#f4f7f5; }
+.destination-search-button { height:30px; padding:0 10px; border:1px solid var(--line); border-radius:9px; background:rgba(255,255,255,.07); color:var(--ink); font-size:.7rem; white-space:nowrap; cursor:pointer; }
+.destination-dialog { width:min(560px,calc(100% - 28px)); border:1px solid rgba(210,232,231,.18); border-radius:24px; padding:22px; color:var(--ink); background:rgba(7,18,28,.94); box-shadow:0 30px 100px rgba(0,0,0,.55); backdrop-filter:blur(24px); }
+.destination-dialog::backdrop { background:rgba(0,7,12,.62); backdrop-filter:blur(7px); }
+.dialog-head { display:flex; justify-content:space-between; align-items:flex-start; }
+.dialog-head h2 { margin:0; font-size:1.45rem; font-weight:500; }
+.dialog-close { width:38px; height:38px; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--muted); font-size:1.4rem; cursor:pointer; }
+.destination-search-form { display:flex; gap:8px; margin-top:22px; }
+.destination-search-form input { flex:1; min-width:0; height:48px; padding:0 15px; border:1px solid rgba(185,215,216,.2); border-radius:13px; outline:none; background:rgba(255,255,255,.06); color:#f1f6f5; font-size:1rem; }
+.destination-search-form input:focus { border-color:rgba(102,213,220,.65); box-shadow:0 0 0 3px rgba(102,213,220,.1); }
+.destination-search-form button { height:48px; padding:0 16px; border:0; border-radius:13px; background:var(--aqua); color:#06202a; font-family:Consolas,"SFMono-Regular",monospace; font-size:.68rem; font-weight:700; letter-spacing:.08em; cursor:pointer; }
+.search-status { margin:12px 2px 4px; min-height:20px; color:#80999f; font-size:.78rem; }
+.destination-results { display:grid; gap:7px; max-height:300px; overflow:auto; margin-top:12px; }
+.destination-result { width:100%; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:13px 14px; border:1px solid var(--line); border-radius:13px; background:rgba(255,255,255,.035); text-align:left; cursor:pointer; }
+.destination-result:hover,.destination-result:focus-visible { background:rgba(102,213,220,.1); border-color:rgba(102,213,220,.35); outline:none; }
+.destination-result strong { display:block; margin-bottom:3px; font-size:.92rem; }
+.destination-result small { color:#81989e; font-size:.73rem; }
+.destination-result span { color:var(--aqua); font-family:Consolas,"SFMono-Regular",monospace; font-size:.64rem; white-space:nowrap; }
+.app[data-theme="light"] .destination-dialog { background:rgba(239,247,247,.97); color:#102431; border-color:rgba(17,68,80,.17); }
+.app[data-theme="light"] .destination-dialog .destination-search-form input { color:#102431; background:rgba(17,68,80,.05); }
 .theme-button { position:absolute; z-index:15; top:clamp(22px,4vw,56px); right:clamp(22px,4vw,60px); height:52px; padding:0 17px; border-radius:15px; color:var(--muted); font-family:Consolas,"SFMono-Regular",monospace; font-size:.62rem; letter-spacing:.09em; cursor:pointer; }
 .window-top { top:clamp(92px,10vw,132px); }
 .map-header { top:clamp(92px,10vw,132px); }
@@ -136,6 +155,21 @@ button { font:inherit; color:inherit; }
 .app[data-theme="light"] .mode-button.active { background:rgba(14,80,95,.1); color:#0a2a37; }
 .app[data-theme="light"] .destination-control select option { color:#102431; background:#f5faf9; }
 .app[data-theme="light"] .video-loading { color:#eaf4f4; text-shadow:0 1px 12px rgba(0,0,0,.5); }
+.app[data-theme="light"] .glass { border-color:rgba(22,68,80,.17); box-shadow:0 16px 44px rgba(37,77,88,.14); }
+.app[data-theme="light"] .focus-dock,.app[data-theme="light"] .mode-switch,.app[data-theme="light"] .destination-control,.app[data-theme="light"] .theme-button { background:rgba(242,249,249,.86); }
+.app[data-theme="light"] .flight-card { background:rgba(244,249,248,.88); border-left-color:#b84400; box-shadow:0 14px 34px rgba(35,72,82,.18); }
+.app[data-theme="light"] .route-title,.app[data-theme="light"] .clock,.app[data-theme="light"] .arrival,.app[data-theme="light"] #timerText,.app[data-theme="light"] .telemetry strong,.app[data-theme="light"] .destination-control select { color:#0b2935; }
+.app[data-theme="light"] .eyebrow,.app[data-theme="light"] .window-caption,.app[data-theme="light"] .telemetry small,.app[data-theme="light"] .airport-row,.app[data-theme="light"] .search-status { color:#496974; }
+.app[data-theme="light"] .duration-options button { color:#4f6c75; }
+.app[data-theme="light"] .duration-options button.active { color:#0a2935; background:rgba(12,65,78,.1); }
+.app[data-theme="light"] .icon-button,.app[data-theme="light"] .quiet-button,.app[data-theme="light"] .show-button { color:#365963; }
+.app[data-theme="light"] .icon-button[aria-pressed="true"] { color:#006b78; border-color:rgba(0,107,120,.38); }
+.app[data-theme="light"] #timerState,.app[data-theme="light"] .mode-icon { color:#087681; }
+.app[data-theme="light"] .flight-progress { background:rgba(15,60,73,.18); }
+.app[data-theme="light"] .flight-progress span { background:linear-gradient(90deg,#007384,#c65708); box-shadow:0 0 10px rgba(0,105,120,.25); }
+.app[data-theme="light"] .plane-marker { background:#f9fdfc; color:#9f4100; border-color:#b84400; box-shadow:0 0 0 5px rgba(184,68,0,.12),0 7px 18px rgba(25,63,74,.22); }
+.app[data-theme="light"] .maplibregl-ctrl-attrib { background:rgba(245,250,249,.82) !important; color:#3e5b64; }
+.app[data-theme="light"] .maplibregl-ctrl-attrib a { color:#294a55 !important; }
 
 @media (max-width:900px) {
   .destination-control { top:18px; left:18px; }
@@ -148,6 +182,8 @@ button { font:inherit; color:inherit; }
   .destination-control { right:72px; height:48px; }
   .destination-control label { display:none; }
   .destination-control select { width:100%; max-width:none; }
+  .destination-search-button { width:34px; padding:0; overflow:hidden; color:transparent; position:relative; }
+  .destination-search-button::after { content:'＋'; position:absolute; inset:0; display:grid; place-items:center; color:var(--ink); font-size:.8rem; }
   .theme-button { width:48px; height:48px; padding:0; overflow:hidden; color:transparent; }
   .theme-button::after { content:'☀'; position:absolute; inset:0; display:grid; place-items:center; color:var(--ink); font-size:.9rem; }
   .app[data-theme="light"] .theme-button::after { content:'☾'; }
