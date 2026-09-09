@@ -22,6 +22,12 @@ button { font:inherit; color:inherit; }
 .clock { margin:0; font-family:Consolas,"SFMono-Regular",monospace; font-size:1.1rem; }
 .window-caption { position:absolute; left:clamp(26px,5vw,72px); bottom:150px; display:flex; align-items:center; gap:12px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.76rem; letter-spacing:.12em; color:rgba(241,247,246,.72); }
 .window-caption span { width:28px; height:1px; background:rgba(255,255,255,.34); }
+.journey-status { position:absolute; z-index:4; left:clamp(26px,5vw,72px); bottom:190px; width:min(330px,calc(100% - 52px)); padding:12px 14px; border-radius:14px; }
+.journey-status-row { display:flex; justify-content:space-between; gap:16px; margin-bottom:8px; color:rgba(239,247,246,.82); font-family:Consolas,"SFMono-Regular",monospace; font-size:.63rem; letter-spacing:.12em; }
+.journey-track { height:3px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.16); }
+.journey-track i { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--aqua),var(--amber)); box-shadow:0 0 10px rgba(102,213,220,.5); transition:width .9s linear; }
+.journey-preview { position:absolute; z-index:4; right:clamp(24px,4vw,60px); bottom:178px; min-height:42px; padding:0 15px; border-radius:13px; color:#e8f3f2; font-family:Consolas,"SFMono-Regular",monospace; font-size:.63rem; letter-spacing:.08em; cursor:pointer; }
+.journey-preview[aria-pressed="true"] { color:#081a23; background:var(--amber); border-color:rgba(255,255,255,.35); }
 .map-grid { position:absolute; inset:0; opacity:.35; background-image:linear-gradient(rgba(145,193,201,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(145,193,201,.05) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 95%); }
 .map-header { position:absolute; z-index:3; top:clamp(20px,3vw,44px); left:clamp(24px,4.5vw,72px); right:clamp(24px,4.5vw,72px); display:flex; justify-content:space-between; align-items:center; }
 .wingmark { display:grid; place-items:center; width:45px; height:45px; border:1px solid rgba(102,213,220,.48); border-radius:50%; font-family:Consolas,"SFMono-Regular",monospace; font-size:.76rem; color:var(--aqua); }
@@ -65,7 +71,7 @@ button { font:inherit; color:inherit; }
 .quiet-button { position:absolute; z-index:11; right:clamp(22px,3vw,44px); bottom:clamp(27px,3.4vw,49px); padding:10px 12px; color:#91a5aa; }
 .show-button { position:absolute; z-index:11; right:22px; bottom:22px; padding:11px 14px; color:#d6e4e4; opacity:0; pointer-events:none; }
 .hidden { display:none !important; }
-.app.ui-hidden .window-top,.app.ui-hidden .mode-switch,.app.ui-hidden .focus-dock,.app.ui-hidden .quiet-button,.app.ui-hidden .map-header,.app.ui-hidden .telemetry { opacity:0; pointer-events:none; }
+.app.ui-hidden .window-top,.app.ui-hidden .mode-switch,.app.ui-hidden .focus-dock,.app.ui-hidden .quiet-button,.app.ui-hidden .map-header,.app.ui-hidden .telemetry,.app.ui-hidden .journey-status,.app.ui-hidden .journey-preview { opacity:0; pointer-events:none; }
 .app.ui-hidden .show-button { opacity:1; pointer-events:auto; }
 
 @media (max-width:760px) {
@@ -102,6 +108,12 @@ button { font:inherit; color:inherit; }
 .window-video { position:absolute; inset:-1%; width:102%; height:102%; object-fit:cover; opacity:0; transition:opacity 1.2s ease,filter .5s ease; }
 .window-image { transition:opacity 1.2s ease,filter .5s ease; }
 .scene-window.video-ready .window-video { opacity:1; }
+.scene-window.video-switching .window-video { opacity:0; }
+.scene-window[data-flight-phase="takeoff"] .window-video { filter:saturate(.92) contrast(1.04); }
+.scene-window[data-flight-phase="climb"] .window-video { filter:saturate(.98) brightness(1.03); }
+.scene-window[data-flight-phase="cruise"] .window-video { filter:saturate(.9) brightness(1.04); }
+.scene-window[data-flight-phase="descent"] .window-video { filter:saturate(.88) contrast(1.06) brightness(.94); }
+.scene-window[data-flight-phase="landing"] .window-video { filter:saturate(.86) contrast(1.08) brightness(.9); }
 .scene-window.video-ready .window-image { opacity:0; }
 .video-loading { position:absolute; z-index:2; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:10px; font-family:Consolas,"SFMono-Regular",monospace; font-size:.62rem; letter-spacing:.14em; color:rgba(239,246,245,.75); transition:opacity .35s; }
 .video-loading span { width:7px; height:7px; border-radius:50%; background:var(--aqua); box-shadow:0 0 18px var(--aqua); animation:pulse 1.2s ease-in-out infinite; }
@@ -164,6 +176,10 @@ button { font:inherit; color:inherit; }
 .app[data-theme="light"] .duration-options button.active { color:#0a2935; background:rgba(12,65,78,.1); }
 .app[data-theme="light"] .icon-button,.app[data-theme="light"] .quiet-button,.app[data-theme="light"] .show-button { color:#365963; }
 .app[data-theme="light"] .icon-button[aria-pressed="true"] { color:#006b78; border-color:rgba(0,107,120,.38); }
+.app[data-theme="light"] .journey-status,.app[data-theme="light"] .journey-preview { background:rgba(242,249,249,.84); color:#173541; border-color:rgba(22,68,80,.17); }
+.app[data-theme="light"] .journey-status-row { color:#173541; }
+.app[data-theme="light"] .journey-track { background:rgba(15,60,73,.18); }
+.app[data-theme="light"] .journey-preview[aria-pressed="true"] { color:#fff; background:#9d520e; }
 .app[data-theme="light"] #timerState,.app[data-theme="light"] .mode-icon { color:#087681; }
 .app[data-theme="light"] .flight-progress { background:rgba(15,60,73,.18); }
 .app[data-theme="light"] .flight-progress span { background:linear-gradient(90deg,#007384,#c65708); box-shadow:0 0 10px rgba(0,105,120,.25); }
@@ -193,4 +209,11 @@ button { font:inherit; color:inherit; }
   .map-header { top:82px; }
   .map-stage { top:132px; }
   .footage-credit { right:18px; bottom:174px; }
+  .journey-status { left:16px; bottom:222px; width:200px; }
+  .journey-preview { right:16px; bottom:222px; min-height:38px; max-width:150px; }
+}
+@media (max-width:470px) {
+  .journey-status { width:160px; padding:10px 11px; }
+  .journey-preview { max-width:138px; padding:0 10px; font-size:.56rem; }
+  .footage-credit { display:none; }
 }

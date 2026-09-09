@@ -17,6 +17,10 @@ const windowScene = document.querySelector('.scene-window');
 const footageCredit = document.querySelector('#footageCredit');
 const themeButton = document.querySelector('#themeButton');
 const mapStage = document.querySelector('.map-stage');
+const flightStageLabel = document.querySelector('#flightStageLabel');
+const journeyProgressText = document.querySelector('#journeyProgressText');
+const journeyTrackFill = document.querySelector('#journeyTrackFill');
+const journeyPreviewButton = document.querySelector('#journeyPreviewButton');
 const destinationDialog = document.querySelector('#destinationDialog');
 const destinationSearchForm = document.querySelector('#destinationSearchForm');
 const destinationQuery = document.querySelector('#destinationQuery');
@@ -26,6 +30,13 @@ const WINDOW_VIEWS = [
   { video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
   { video:'https://videos.pexels.com/video-files/34103177/14464255_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/aircraft-wing-view-with-scenic-clouds-in-flight-34103177/' },
   { video:'https://videos.pexels.com/video-files/34597437/14661683_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-in-bright-blue-sky-over-clouds-34597437/' }
+];
+const TOKYO_JOURNEY = [
+  { id:'takeoff', start:0, end:.08, label:'TAKEOFF · INCHEON', video:'https://videos.pexels.com/video-files/18437623/18437623-hd_1920_1080_50fps.mp4', source:'https://www.pexels.com/video/a-plane-wing-is-seen-from-the-window-of-an-airplane-18437623/' },
+  { id:'climb', start:.08, end:.2, label:'CLIMB · ABOVE KOREA', video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
+  { id:'cruise', start:.2, end:.78, label:'CRUISE · EAST SEA', video:'https://videos.pexels.com/video-files/34597437/14661683_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-in-bright-blue-sky-over-clouds-34597437/' },
+  { id:'descent', start:.78, end:.93, label:'DESCENT · TOKYO BAY', video:'https://videos.pexels.com/video-files/14063546/14063546-uhd_3840_2160_60fps.mp4', source:'https://www.pexels.com/video/window-view-from-a-plane-landing-at-the-airport-14063546/', seek:0 },
+  { id:'landing', start:.93, end:1.01, label:'LANDING · TOKYO', video:'https://videos.pexels.com/video-files/14063546/14063546-uhd_3840_2160_60fps.mp4', source:'https://www.pexels.com/video/window-view-from-a-plane-landing-at-the-airport-14063546/', seek:.62 }
 ];
 const DESTINATIONS = {
   paris: { name:'Paris', ko:'파리', code:'CDG', coords:[2.3522,48.8566], timezone:'Europe/Paris', video:'https://videos.pexels.com/video-files/16127349/16127349-uhd_3840_2160_30fps.mp4', source:'https://www.pexels.com/video/airplane-wing-16127349/' },
@@ -64,6 +75,9 @@ let currentRouteCoordinates = [];
 let flightStartedAt = Date.now();
 let flightDurationMs = 0;
 let flightTicker = null;
+let previewMode = false;
+let currentFlightPhase = '';
+let currentVideoMeta = null;
 
 function updateClock() {
   const localValue = new Intl.DateTimeFormat('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
@@ -108,12 +122,37 @@ function formatRemaining(milliseconds) {
   const seconds = totalSeconds % 60;
   return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
 }
+function setWindowVideo(view, phase = 'cruise') {
+  currentFlightPhase = phase;
+  currentVideoMeta = view;
+  windowScene.dataset.flightPhase = phase;
+  windowScene.classList.remove('video-ready','video-error');
+  windowScene.classList.add('video-switching');
+  footageCredit.href = view.source;
+  footageCredit.textContent = 'FLIGHT PHASE FOOTAGE · PEXELS';
+  destinationVideo.src = view.video;
+  destinationVideo.load();
+  destinationVideo.play().catch(() => {});
+}
+function updateJourneyStage(progress) {
+  const percentage = Math.min(100,Math.max(0,progress * 100));
+  journeyTrackFill.style.width = `${percentage}%`;
+  journeyProgressText.textContent = `${percentage.toFixed(0)}%`;
+  if (currentDestination !== DESTINATIONS.tokyo) {
+    flightStageLabel.textContent = progress >= 1 ? `ARRIVED · ${currentDestination.code}` : `CRUISE · TO ${currentDestination.code}`;
+    return;
+  }
+  const stage = TOKYO_JOURNEY.find(item => progress >= item.start && progress < item.end) || TOKYO_JOURNEY[TOKYO_JOURNEY.length - 1];
+  flightStageLabel.textContent = progress >= 1 ? 'ARRIVED · TOKYO' : stage.label;
+  if (stage.id !== currentFlightPhase) setWindowVideo(stage,stage.id);
+}
 function updateFlightProgress() {
   const elapsed = Math.max(0,Date.now() - flightStartedAt);
   const progress = flightDurationMs ? Math.min(1,elapsed / flightDurationMs) : 0;
   document.querySelector('#arrivalTime').textContent = formatRemaining(flightDurationMs - elapsed);
   document.querySelector('.flight-progress span').style.width = `${progress * 100}%`;
   document.querySelector('#flightPercent').textContent = `${(progress * 100).toFixed(2)}%`;
+  updateJourneyStage(progress);
   if (planeMarker && currentRouteCoordinates.length) {
     const scaled = progress * (currentRouteCoordinates.length - 1);
     const index = Math.floor(scaled);
@@ -124,10 +163,11 @@ function updateFlightProgress() {
   }
   if (progress >= 1 && flightTicker) { clearInterval(flightTicker); flightTicker = null; }
 }
-function resetFlight(destination) {
+function resetFlight(destination, durationOverrideMs = 0) {
   clearInterval(flightTicker);
   flightStartedAt = Date.now();
-  flightDurationMs = Math.max(45 * 60 * 1000,(distanceKm(ORIGIN.coords,destination.coords) / 820 + .65) * 3600 * 1000);
+  flightDurationMs = durationOverrideMs || Math.max(45 * 60 * 1000,(distanceKm(ORIGIN.coords,destination.coords) / 820 + .65) * 3600 * 1000);
+  currentFlightPhase = '';
   document.querySelector('.flight-progress span').style.width = '0%';
   document.querySelector('#flightPercent').textContent = '0.00%';
   updateFlightProgress();
@@ -135,6 +175,8 @@ function resetFlight(destination) {
 }
 function setDestination(key) {
   const destination = DESTINATIONS[key] || DESTINATIONS.paris;
+  previewMode = false;
+  updatePreviewButton();
   currentDestination = destination;
   destinationSelect.value = key;
   localStorage.setItem('cabin-destination', key);
@@ -143,17 +185,38 @@ function setDestination(key) {
   document.querySelector('#cardAirportCode').textContent = destination.code;
   document.querySelector('#destinationClockLabel').textContent = `${destination.name.toUpperCase()} · LOCAL TIME`;
   const view = selectWindowView(destination);
-  footageCredit.href = view.source;
-  footageCredit.textContent = 'REAL WINDOW FOOTAGE · PEXELS';
-  windowScene.classList.remove('video-ready','video-error');
-  destinationVideo.src = view.video;
-  destinationVideo.load();
-  destinationVideo.play().catch(() => {});
+  if (destination !== DESTINATIONS.tokyo) setWindowVideo(view,'cruise');
   resetFlight(destination);
   updateClock();
   updateMapRoute();
 }
-destinationVideo.addEventListener('canplay', () => { windowScene.classList.add('video-ready'); destinationVideo.play().catch(() => {}); });
+function updatePreviewButton() {
+  journeyPreviewButton.textContent = previewMode ? 'EXIT 2 MIN JOURNEY' : 'ICN → TOKYO · 2 MIN JOURNEY';
+  journeyPreviewButton.setAttribute('aria-pressed',String(previewMode));
+}
+journeyPreviewButton.addEventListener('click', () => {
+  if (previewMode) {
+    previewMode = false;
+    updatePreviewButton();
+    resetFlight(currentDestination);
+    return;
+  }
+  if (currentDestination !== DESTINATIONS.tokyo) setDestination('tokyo');
+  previewMode = true;
+  updatePreviewButton();
+  setMode('window');
+  resetFlight(currentDestination,2 * 60 * 1000);
+});
+destinationVideo.addEventListener('loadedmetadata', () => {
+  if (currentVideoMeta?.seek && Number.isFinite(destinationVideo.duration)) {
+    destinationVideo.currentTime = Math.min(destinationVideo.duration - .5,destinationVideo.duration * currentVideoMeta.seek);
+  }
+});
+destinationVideo.addEventListener('canplay', () => {
+  windowScene.classList.add('video-ready');
+  windowScene.classList.remove('video-switching');
+  destinationVideo.play().catch(() => {});
+});
 destinationVideo.addEventListener('error', () => windowScene.classList.add('video-error'));
 destinationSelect.addEventListener('change', () => setDestination(destinationSelect.value));
 
